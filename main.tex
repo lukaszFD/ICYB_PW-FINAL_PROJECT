@@ -20,6 +20,8 @@
 %    style=ieee
 %]{biblatex}
 \usepackage{csquotes}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning}
 
 \langpol % Dla języka angielskiego mamy \langeng
 \graphicspath{{img/}}             % Katalog z obrazkami.
@@ -195,14 +197,42 @@ Dane z logów zbierane są za pomocą \textbf{Filebeat} i kierowane do systemu \
 
 Wszystkie komponenty są połączone za pomocą wewnętrznych sieci wirtualnych Dockera, co ogranicza dostęp z zewnątrz do tylko niezbędnych portów i usług. Dzięki temu możliwe jest wdrożenie polityk bezpieczeństwa i izolacji na poziomie kontenerów. 
 
-% Na rysunku~\ref{fig:architektura} przedstawiono uproszczony schemat logiczny systemu bezpieczeństwa.
+Na rysunku~\ref{fig:architektura} przedstawiono uproszczony schemat logiczny systemu bezpieczeństwa. Widoczny jest przepływ danych od urządzeń końcowych w sieci lokalnej, które kierują ruch do usługi proxy (Squid). Następnie zapytania DNS są filtrowane przez Pi-hole, a docelowo rozwiązywane przez lokalny rekurencyjny resolver Unbound. Ruch wychodzący kierowany jest do Internetu. 
 
-% \begin{figure}[H]
-%     \centering
-%     \includegraphics[width=0.95\textwidth]{A_diagram_illustrates_the_logical_architecture_of_.png}
-%     \caption{Architektura logiczna systemu bezpieczeństwa}
-%     \label{fig:architektura}
-% \end{figure}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.4cm,
+    every node/.style={draw, rounded corners, align=center, minimum width=3.4cm, minimum height=1.0cm, font=\small},
+    arrow/.style={-Latex, thick}
+]
+
+% Nodes
+\node (devices) {Urządzenia \\ domowe};
+\node[below=of devices] (squid) {Squid \\ Proxy};
+\node[below=of squid] (pihole) {Pi-hole};
+\node[below=of pihole] (unbound) {Unbound};
+\node[below=of unbound] (internet) {Internet};
+
+\node[right=2.8cm of squid] (suricata) {Suricata IDS};
+\node[below=of suricata] (filebeat) {Filebeat};
+\node[below=of filebeat] (graylog) {Graylog};
+
+% Arrows - main flow
+\draw[arrow] (devices) -- (squid);
+\draw[arrow] (squid) -- (pihole);
+\draw[arrow] (pihole) -- (unbound);
+\draw[arrow] (unbound) -- (internet);
+
+% Arrows - monitoring flow
+\draw[arrow] (squid.east) -- ++(0.7,0) |- (suricata.north);
+\draw[arrow] (suricata) -- (filebeat);
+\draw[arrow] (filebeat) -- (graylog);
+
+\end{tikzpicture}
+\caption{Uproszczony schemat logiczny systemu bezpieczeństwa z konteneryzacją}
+\label{fig:architektura}
+\end{figure}
 
 \subsection{Segmentacja i separacja usług w sieci lokalnej}
 
