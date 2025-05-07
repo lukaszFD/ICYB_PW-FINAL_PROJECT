@@ -1,28 +1,37 @@
-\documentclass[
-    left=2.5cm,
-    right=2.5cm,
-    top=2.5cm,
-    bottom=3cm,
-    bindingoffset=6mm,
-    nohyphenation=true
-]{eiti/eiti-thesis}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Engineer & Master Thesis, LaTeX Template          %%
+%% Copyleft by Piotr Woźniak & Artur M. Brodzki      %%
+%% Faculty of Electronics and Information Technology %%
+%% Warsaw University of Technology, Warsaw, 2019     %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\usepackage{csquotes}
+\documentclass[
+    left=2.5cm,         % Sadly, generic margin parameter
+    right=2.5cm,        % doesnt't work, as it is
+    top=2.5cm,          % superseded by more specific
+    bottom=3cm,         % left...bottom parameters.
+    bindingoffset=6mm,  % Optional binding offset.
+    nohyphenation=true % You may turn off hyphenation, if don't like. =false
+]{eiti/eiti-thesis} % bazuje na clasie mwart
+
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, positioning}
-
-\usepackage[
-   backend=bibtex,
-   style=ieee
-]{biblatex}
+%\usepackage[
+%    backend=bibtex,
+%    style=ieee
+%]{biblatex}
 \usepackage{csquotes}
 
-\langpol 
-\graphicspath{{img/}}             
-\addbibresource{bibliografia.bib}
+\langpol % Dla języka angielskiego mamy \langeng
+\graphicspath{{img/}}             % Katalog z obrazkami.
+%\addbibresource{bibliografia.bib} % Plik .bib z bibliografią          
 
+% dodanie kropki po numerze w~LoL https://tex.stackexchange.com/questions/597350/add-dot-after-number-of-listing-in-list-of-listings
 \makeatletter
 \xpatchcmd\lst@MakeCaption{\protect\numberline{\thelstlisting}\lst@@caption}{\protect\numberline{\thelstlisting.}\lst@@caption}{}{}
+%\makeatother
+%\makeatletter
+%\xpatchcmd{\LT@c@ption}{\protect\numberline{\thetable}}{\protect\numberline.{. \thetable . }}{}{}
 \makeatother
 
 \begin{document}
@@ -242,7 +251,7 @@ Segmentacja logiczna i funkcjonalna usług nie tylko zwiększa bezpieczeństwo, 
 \section{Konfiguracja i rola poszczególnych komponentów}
 \subsection{Pi-hole jako centralny DNS filtrujący}
 
-\textbf{Pi-hole} pełni w prezentowanym systemie funkcję centralnego serwera DNS, odpowiadającego za obsługę zapytań DNS z całej sieci lokalnej. Jego głównym zadaniem jest filtrowanie niechcianych zapytań do domen z list czarnej listy (blacklist), w tym blokowanie reklam, śledzenia użytkowników (trackery), elementów malware oraz innych potencjalnie niebezpiecznych domen. Dzięki temu Pi-hole stanowi pierwszą linię obrony przed wieloma zagrożeniami jeszcze zanim ruch opuści sieć lokalną.
+\textbf{Pi-hole} pełni w prezentowanym systemie funkcję centralnego serwera DNS, odpowiadającego za obsługę zapytań DNS z całej sieci lokalnej. Jego głównym zadaniem jest filtrowanie niechcianych zapytań do domen z list czarnej listy (blacklist), w tym blokowanie reklam, śledzenia użytkowników (trackery), elementów malware oraz innych potencjalnie niebezpiecznych domen. Dzięki temu Pi-hole \cite{pihole-docs} stanowi pierwszą linię obrony przed wieloma zagrożeniami jeszcze zanim ruch opuści sieć lokalną.
 
 Pi-hole został uruchomiony w kontenerze Docker na platformie Raspberry Pi 5, co umożliwia jego łatwą aktualizację, przenoszenie oraz niezależne zarządzanie. Kontener został skonfigurowany z odpowiednimi wolumenami trwałymi, umożliwiającymi zachowanie ustawień i statystyk po restarcie. W konfiguracji uwzględniono mapowanie portów 53 (UDP i TCP) dla zapytań DNS oraz port 80 dla interfejsu webowego, z dodatkowym ograniczeniem dostępu za pomocą firewalla.
 
@@ -816,7 +825,13 @@ Z punktu widzenia edukacyjnego, projekt umożliwia zapoznanie się z praktycznym
 
 Wdrożone rozwiązanie może być łatwo przeniesione na serwery x86 lub do środowisk chmurowych, co czyni je skalowalnym i uniwersalnym. Stanowi również przykład dobrych praktyk cyberbezpieczeństwa możliwych do zastosowania nie tylko w środowisku domowym, ale i małych firmach lub organizacjach edukacyjnych.
 
+%--------------------------------------------
+% Literatura
+%--------------------------------------------
 \newpage
-\printbibliography[title={Literatura}]
+%\printbibliography
+\bibliographystyle{plabbrv} % plplain plabbrv plalpha
+\bibliography{bibliografia.bib}
+% Załączniki
 
 \end{document}
