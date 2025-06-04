@@ -14,6 +14,9 @@
     nohyphenation=true % You may turn off hyphenation, if don't like. =false
 ]{eiti/eiti-thesis} % bazuje na clasie mwart
 
+\usepackage{tabularx}
+\usepackage{float}
+
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, positioning}
 %\usepackage[
@@ -71,6 +74,10 @@
 Zastosowane komponenty umożliwiają kontrolę nad dostępem do sieci, blokowanie podejrzanych domen, analizę pakietów w czasie rzeczywistym oraz monitorowanie stanu systemu i usług. W pracy szczegółowo opisano konfigurację elementów odpowiedzialnych za filtrowanie DNS, wykrywanie intruzów, analizę logów oraz ich prezentację w formie czytelnych wykresów i pulpitów zarządczych. System został uruchomiony na serwerze domowym z systemem Linux oraz dodatkowo na platformie Raspberry Pi, co pokazuje elastyczność rozwiązania.
 
 Projekt udowadnia, że także w warunkach domowych możliwe jest wdrożenie systemu bezpieczeństwa opartego na najlepszych praktykach znanych z infrastruktury korporacyjnej. Przedstawione podejście może stanowić punkt wyjścia do dalszych rozważań na temat bezpieczeństwa rozproszonych środowisk cyfrowych oraz implementacji polityk bezpieczeństwa opartych na danych telemetrycznych i analizie zagrożeń.
+
+Dodatkowo przedstawiono praktyczne zastosowanie omawianego środowiska, stworzonego pod nazwą „Home Network Guardian”\cite{github-homenetguardian}, wraz z dokumentacją dostępną na dedykowanej stronie internetowej projektu. Praca zawiera szczegółowe wykresy oraz schematy które ilustrują architekturę oraz interakcję między poszczególnymi komponentami.
+
+Opracowane rozwiązanie stanowi efektywny, ekonomiczny i bezpieczny sposób ochrony domowej infrastruktury IT, możliwy do wdrożenia przez każdego świadomego użytkownika technologii informacyjnych.
 
 \slowakluczowe bezpieczeństwo sieci, DNS, Docker, analiza logów, filtracja treści, detekcja zagrożeń, Raspberry Pi, monitoring systemu
 
@@ -149,7 +156,7 @@ Prace rozpoczęto od analizy możliwości sprzętowych oraz wyboru otwartoźród
 
 W kolejnych krokach skonfigurowano poszczególne komponenty systemu: serwery DNS, serwer proxy, system IDS, agregator logów oraz mechanizmy monitorujące. W celu zapewnienia spójności, dla każdej usługi utworzono oddzielne pliki konfiguracyjne oraz definicje kontenerów (Docker Compose). Równolegle prowadzono testy funkcjonalne poszczególnych modułów, weryfikując poprawność działania filtracji, detekcji i logowania zdarzeń.
 
-Metodyka pracy zakładała również zastosowanie dokumentacji oficjalnej (ang. vendor documentation) oraz materiałów ogólnodostępnych, takich jak fora społecznościowe, blogi techniczne czy artykuły naukowe. W celu oceny skuteczności wdrożonych mechanizmów wykorzystywano dane z logów systemowych oraz panele monitorujące (dashboardy) stworzone w Grafanie i Graylogu.
+Metodyka pracy zakładała również zastosowanie dokumentacji oficjalnej (ang. vendor documentation) oraz materiałów ogólnodostępnych. W celu oceny skuteczności wdrożonych mechanizmów wykorzystywano dane z logów systemowych oraz panele monitorujące (dashboardy) stworzone w Grafanie i Graylogu.
 
 Całość środowiska została osadzona na serwerze z systemem Debian oraz Raspberry Pi, co pozwoliło na weryfikację działania systemu zarówno w warunkach zasobooszczędnych, jak i przy większej wydajności. Projekt zrealizowano w środowisku domowym, co podkreśla jego dostępność i możliwość zastosowania w rzeczywistych warunkach.
 
@@ -157,19 +164,19 @@ Całość środowiska została osadzona na serwerze z systemem Debian oraz Raspb
 \section{Opis środowiska i architektury systemu}
 \subsection{Wykorzystany sprzęt i platforma systemowa}
 
-Do realizacji projektu wybrano sprzęt, który zapewnia zarówno wysoką wydajność, jak i energooszczędność, co czyni go idealnym rozwiązaniem dla środowiska typu home lab. Główną jednostką obliczeniową jest komputer jednopłytkowy \textbf{Raspberry Pi 5} wyposażony w \textbf{8~GB pamięci RAM}. Jego najnowsza generacja charakteryzuje się znaczącym wzrostem mocy obliczeniowej względem poprzednich modeli, dzięki ulepszonemu procesorowi i zintegrowanemu układowi graficznemu. Taka konfiguracja pozwala na równoczesne uruchomienie wielu usług, takich jak \textit{Pi-hole}, \textit{Unbound}, \textit{Suricata} oraz \textit{Graylog}, bez zauważalnego spadku wydajności — nawet przy zwiększonym natężeniu ruchu sieciowego.
+Do realizacji projektu wybrano sprzęt, który zapewnia zarówno wysoką wydajność, jak i energooszczędność, co czyni go idealnym rozwiązaniem dla środowiska typu home lab. Główną jednostką obliczeniową jest komputer jednopłytkowy \textbf{Raspberry Pi 5}\cite{raspberry-start} wyposażony w \textbf{8~GB pamięci RAM}. Jego najnowsza generacja charakteryzuje się znaczącym wzrostem mocy obliczeniowej względem poprzednich modeli, dzięki ulepszonemu procesorowi i zintegrowanemu układowi graficznemu. Taka konfiguracja pozwala na równoczesne uruchomienie wielu usług, takich jak \textit{Pi-hole}, \textit{Unbound}, \textit{Suricata} oraz \textit{Graylog}, bez zauważalnego spadku wydajności — nawet przy zwiększonym natężeniu ruchu sieciowego.
 
 Jedną z kluczowych cech Raspberry Pi 5 jest obecność magistrali \textbf{PCIe}, która została wykorzystana do podłączenia dysku \textbf{NVMe Samsung SSD 980 o pojemności 500~GB}. Zastosowanie nośnika SSD w standardzie NVMe znacznie przyspieszyło operacje zapisu i odczytu danych w porównaniu do tradycyjnych kart microSD, co ma szczególne znaczenie w kontekście gromadzenia logów i działania systemów monitorujących.
 
 Całość została umieszczona w dedykowanej obudowie \textbf{Argon NEO 5 M.2 NVMe PCIe}, która nie tylko zapewnia pasywne chłodzenie układów elektronicznych, ale również wspiera bezpośrednie mocowanie i integrację dysku SSD w formacie M.2. Obudowa została wykonana z aluminium, co przekłada się na wysoką trwałość oraz efektywne odprowadzanie ciepła, dzięki czemu możliwa jest długotrwała praca systemu bez ryzyka przegrzania. Kompaktowa forma oraz estetyczne wykonanie sprawiają, że zestaw doskonale wpisuje się w warunki domowego laboratorium.
 
-Platforma systemowa oparta została na systemie \textbf{Raspberry Pi OS Lite}, będącym oficjalną dystrybucją Linuxa wspieraną przez Fundację Raspberry Pi. System ten zapewnia kompatybilność ze środowiskiem Docker oraz dostęp do bogatego repozytorium pakietów, co znacząco ułatwia wdrażanie usług kontenerowych. Wszystkie kontenery zostały uruchomione na silniku \textbf{Docker Engine} w wersji zgodnej z architekturą ARM64, natomiast ich zarządzanie odbywa się za pośrednictwem \textit{Portainera}.
+Platforma systemowa oparta została na systemie \textbf{Raspberry Pi OS Lite}\cite{raspberry-os}, będącym oficjalną dystrybucją Linuxa wspieraną przez Fundację Raspberry Pi. System ten zapewnia kompatybilność ze środowiskiem Docker oraz dostęp do bogatego repozytorium pakietów, co znacząco ułatwia wdrażanie usług kontenerowych. Wszystkie kontenery zostały uruchomione na silniku \textbf{Docker Engine} w wersji zgodnej z architekturą ARM64, natomiast ich zarządzanie odbywa się za pośrednictwem \textit{Portainera}.
 
 Taka konfiguracja sprzętowo-programowa spełnia wymagania wydajnościowe i funkcjonalne projektu, zapewniając jednocześnie niski pobór mocy, cichą pracę i wysoką stabilność w warunkach domowych.
 
 \subsection{Wirtualizacja i konteneryzacja (Docker + Portainer)}
 
-W ramach niniejszego projektu zdecydowano się na wykorzystanie lekkiej formy wirtualizacji, jaką jest konteneryzacja z użyciem platformy Docker. Rozwiązanie to zostało wybrane ze względu na swoją elastyczność, wysoką wydajność oraz szerokie wsparcie społeczności i dostawców narzędzi open-source. Konteneryzacja umożliwia uruchamianie wielu odseparowanych usług w ramach jednego systemu operacyjnego, bez konieczności tworzenia pełnych maszyn wirtualnych. Dzięki temu znacznie redukowane są koszty zasobów oraz czas potrzebny na wdrożenie i zarządzanie poszczególnymi komponentami systemu bezpieczeństwa.
+W ramach niniejszego projektu zdecydowano się na wykorzystanie lekkiej formy wirtualizacji, jaką jest konteneryzacja z użyciem platformy Docker\cite{docker-wiki}. Rozwiązanie to zostało wybrane ze względu na swoją elastyczność, wysoką wydajność oraz szerokie wsparcie społeczności i dostawców narzędzi open-source. Konteneryzacja umożliwia uruchamianie wielu odseparowanych usług w ramach jednego systemu operacyjnego, bez konieczności tworzenia pełnych maszyn wirtualnych. Dzięki temu znacznie redukowane są koszty zasobów oraz czas potrzebny na wdrożenie i zarządzanie poszczególnymi komponentami systemu bezpieczeństwa.
 
 \textbf{Docker} pozwala na budowanie i uruchamianie aplikacji w formie kontenerów, które zawierają wszystkie niezbędne zależności — biblioteki, pliki konfiguracyjne oraz kod aplikacyjny. Każdy komponent systemu bezpieczeństwa (np. \textit{Pi-hole}, \textit{Unbound}, \textit{Suricata}, \textit{Graylog}, \textit{Prometheus}, \textit{Grafana}) został umieszczony w osobnym kontenerze, co znacząco zwiększa modularność i ułatwia konserwację systemu. Dodatkowo, każda usługa uruchamiana jest w odrębnej sieci wirtualnej Dockera, co umożliwia precyzyjne kontrolowanie ruchu sieciowego między kontenerami i hostem oraz zwiększa bezpieczeństwo całego środowiska.
 
@@ -237,7 +244,7 @@ Na rysunku~\ref{fig:architektura} przedstawiono uproszczony schemat logiczny sys
 
 Jednym z kluczowych założeń projektowych było zapewnienie logicznej i funkcjonalnej separacji usług działających w ramach systemu bezpieczeństwa, co przekłada się bezpośrednio na podniesienie poziomu ochrony sieci lokalnej. Zastosowano podejście zgodne z zasadą \textit{security by design}, w którym każda usługa posiada wyraźnie zdefiniowaną funkcję, dostęp do tylko niezbędnych zasobów oraz ograniczoną komunikację z innymi komponentami.
 
-Cała architektura została oparta na platformie Docker, która umożliwia uruchamianie poszczególnych usług w izolowanych kontenerach. Kontenery te zostały pogrupowane w logiczne segmenty sieci wirtualnych Docker, co pozwala na granularne kontrolowanie komunikacji między nimi. Przykładowo, kontener \textit{Squid Proxy} ma dostęp do zewnętrznego Internetu oraz do kontenerów \textit{Pi-hole} i \textit{Unbound}, lecz nie posiada bezpośredniego połączenia z usługami logującymi, takimi jak \textit{Graylog} czy \textit{Prometheus}.
+Cała architektura została oparta na platformie Docker\cite{docker-docs}, która umożliwia uruchamianie poszczególnych usług w izolowanych kontenerach. Kontenery te zostały pogrupowane w logiczne segmenty sieci wirtualnych Docker, co pozwala na granularne kontrolowanie komunikacji między nimi. Przykładowo, kontener \textit{Squid Proxy} ma dostęp do zewnętrznego Internetu oraz do kontenerów \textit{Pi-hole} i \textit{Unbound}, lecz nie posiada bezpośredniego połączenia z usługami logującymi, takimi jak \textit{Graylog} czy \textit{Prometheus}.
 
 Separacja realizowana jest również na poziomie warstwy sieciowej dzięki wykorzystaniu wielu mostów sieciowych (ang. \textit{Docker bridge networks}). Dla każdej grupy usług zdefiniowano osobną sieć wirtualną, co pozwala na kontrolowanie tras routingu, zamykanie nieużywanych portów oraz precyzyjne definiowanie reguł dostępu przy użyciu mechanizmów zapory ogniowej (iptables) oraz konfiguracji Dockera.
 
@@ -247,8 +254,82 @@ Dodatkowo, każda aplikacja kontenerowa uruchamiana jest z jak najmniejszym zest
 
 Segmentacja logiczna i funkcjonalna usług nie tylko zwiększa bezpieczeństwo, ale również ułatwia zarządzanie systemem, umożliwia szybsze diagnozowanie problemów oraz ogranicza skutki ewentualnych błędów lub kompromitacji poszczególnych komponentów. Rozdzielenie usług umożliwia też niezależne aktualizacje i restarty bez wpływu na stabilność całego środowiska.
 
+\newpage
+\subsection{Zestawienie komponentów, portów i ról w systemie}
+
+W tabeli~\ref{tab:services-overview} zestawiono wszystkie główne komponenty wdrożonego systemu bezpieczeństwa, wraz z informacją o wykorzystywanych portach sieciowych, przypisanej sieci Docker (lub trybie hosta) oraz pełnionej funkcji. Zestawienie to pozwala w szybki sposób zrozumieć strukturę logiczną i sieciową systemu.
+
+\newpage
+\begin{table}[H]
+\centering
+\caption{Usługi i porty w systemie bezpieczeństwa}
+\label{tab:services-overview}
+\begin{tabularx}{\textwidth}{|l|l|l|X|}
+\hline
+\textbf{Usługa} & \textbf{Port(y)} & \textbf{Sieć} & \textbf{Funkcja} \\
+\hline
+Pi-hole & 53/tcp, 53/udp, 80 & internal\_network & DNS filtrujący, interfejs webowy \\
+\hline
+Unbound (dla Pi-hole) & - & internal\_network & DNS rekurencyjny dla Pi-hole \\
+\hline
+Squid Proxy (LAN) & 3128 & internal\_network & HTTP/HTTPS proxy dla urządzeń LAN \\
+\hline
+Squid Proxy (Mobile) & 3129 & internal\_network & HTTP/HTTPS proxy dla urządzeń mobilnych \\
+\hline
+Firefox & 4000, 4001 & firefox\_network & Izolowana przeglądarka z dostępem przez noVNC \\
+\hline
+Unbound (dla Firefox) & - & firefox\_network & Dedykowany DNS rekurencyjny tylko dla Firefox \\
+\hline
+Suricata IDS & - & host & Monitorowanie i analiza ruchu sieciowego \\
+\hline
+Filebeat & 5044 (out) & host (na serwerze) & Agent logów (Suricata, Squid, Pi-hole, dysk) \\
+\hline
+Graylog & 9000, 5044 & host & Centralne logowanie i analiza zdarzeń \\
+\hline
+Elasticsearch & 9200 & host & Indeksowanie i przeszukiwanie logów \\
+\hline
+MongoDB & domyślnie 27017 & host & Baza danych Grayloga (konfiguracja, dashboardy) \\
+\hline
+Grafana & 3000 & host & Wizualizacja metryk i integracja z Prometheus \\
+\hline
+Prometheus & 9090 & host & Zbieranie metryk systemowych i kontenerów \\
+\hline
+Portainer & 9010 & host & Panel do zarządzania kontenerami Docker \\
+\hline
+\end{tabularx}
+\end{table}
+
+
 \newpage 
 \section{Konfiguracja i rola poszczególnych komponentów}
+
+\subsection{Docker network – konfiguracja izolacji kontenerów}
+
+W celu zapewnienia kontroli przepływu danych oraz realizacji zasady ograniczonego zaufania (\textit{zero trust}), cały system został zorganizowany w oparciu o logicznie wydzielone sieci wirtualne Docker, działające na sterowniku typu \texttt{bridge}. Każda sieć odpowiada innej klasie usług i została zdefiniowana z osobną przestrzenią adresową (\texttt{subnet}), co zapewnia przejrzystość oraz granularną kontrolę nad komunikacją między komponentami.
+
+Zdefiniowano następujące sieci:
+
+\begin{itemize}
+    \item \textbf{internal\_network} – podstawowa sieć przeznaczona dla kluczowych komponentów bezpieczeństwa: Pi-hole, Unbound (dla Pi-hole), Squid Proxy oraz Suricata. Sieć ta jest izolowana od systemu hosta, a dostęp do Internetu realizowany jest wyłącznie przez ściśle określone punkty (np. proxy).
+    \item \textbf{firefox\_network} – dedykowana sieć dla kontenera przeglądarki Firefox oraz powiązanej z nią instancji Unbound. Zapytania DNS z Firefox są obsługiwane wyłącznie przez przypisany resolver DNS (Unbound na adresie \texttt{172.30.0.2}), a przeglądarka nie posiada dostępu do pozostałych komponentów systemu.
+    \item \textbf{squid\_network} – osobna sieć dla drugiej instancji Squid Proxy, przeznaczonej do obsługi specyficznych grup urządzeń (np. dziecięcych, mobilnych), co umożliwia zastosowanie odrębnych reguł filtracji i logowania. Rozdzielenie tej instancji od głównej sieci proxy pozwala na precyzyjne zarządzanie polityką dostępu.
+    \item \textbf{portainer\_network} – wydzielona sieć przeznaczona wyłącznie dla kontenera Portainer, który zapewnia zarządzanie środowiskiem Docker. Izolacja Portainera od innych usług zapobiega możliwości jego nadużycia jako wektora dostępowego do kontenerów produkcyjnych.
+\end{itemize}
+
+Każda z tych sieci została zdefiniowana z własnym zakresem adresów IP (\texttt{subnet}), co umożliwia przypisywanie statycznych adresów poszczególnym kontenerom. Dzięki temu możliwe było np. wskazanie Unbounda jako DNS o konkretnym adresie IP z poziomu Firefox lub ograniczenie dostępności usług DNS i HTTP jedynie do kontenerów z tej samej podsieci.
+
+Taka architektura sieciowa pozwala również na:
+\begin{itemize}
+    \item niezależne restartowanie i aktualizowanie grup kontenerów bez wpływu na pozostałe usługi,
+    \item pełną kontrolę nad routingiem pakietów i dostępem między sieciami,
+    \item zastosowanie reguł zapory ogniowej (np. UFW lub \texttt{iptables}) w oparciu o znane, przewidywalne adresy IP,
+    \item łatwe dodanie warstwowej analizy ruchu (np. Suricata z dostępem do wybranych podsieci),
+    \item eliminację potrzeby publikowania portów na zewnątrz w wielu przypadkach (dostęp wewnętrzny tylko przez sieci Docker).
+\end{itemize}
+
+Zastosowanie oddzielnych sieci dla poszczególnych typów komponentów odzwierciedla architekturę \textit{security by design} oraz wspiera zasadę najmniejszych uprawnień. Dzięki temu komponenty o różnym poziomie zaufania nie mogą się ze sobą komunikować w sposób niekontrolowany, a ewentualna kompromitacja jednego kontenera nie wpływa bezpośrednio na pozostałe.
+
+
 \subsection{Pi-hole jako centralny DNS filtrujący}
 
 \textbf{Pi-hole} pełni w prezentowanym systemie funkcję centralnego serwera DNS, odpowiadającego za obsługę zapytań DNS z całej sieci lokalnej. Jego głównym zadaniem jest filtrowanie niechcianych zapytań do domen z list czarnej listy (blacklist), w tym blokowanie reklam, śledzenia użytkowników (trackery), elementów malware oraz innych potencjalnie niebezpiecznych domen. Dzięki temu Pi-hole \cite{pihole-docs} stanowi pierwszą linię obrony przed wieloma zagrożeniami jeszcze zanim ruch opuści sieć lokalną.
@@ -273,7 +354,7 @@ W ramach systemu Pi-hole stanowi zatem kluczowy komponent w warstwie prewencji i
 
 \subsection{Unbound jako rekurencyjny resolver DNS}
 
-\textbf{Unbound} pełni w opisywanym systemie rolę lokalnego, rekurencyjnego resolvera DNS, który współpracuje bezpośrednio z serwerem Pi-hole. Jego głównym zadaniem jest niezależne i bezpieczne rozwiązywanie zapytań DNS, bez udziału zewnętrznych operatorów (takich jak Google DNS czy Cloudflare), co znacząco zwiększa poziom prywatności i integralności komunikacji sieciowej.
+\textbf{Unbound}\cite{unbound-docs} pełni w opisywanym systemie rolę lokalnego, rekurencyjnego resolvera DNS, który współpracuje bezpośrednio z serwerem Pi-hole. Jego głównym zadaniem jest niezależne i bezpieczne rozwiązywanie zapytań DNS, bez udziału zewnętrznych operatorów (takich jak Google DNS czy Cloudflare), co znacząco zwiększa poziom prywatności i integralności komunikacji sieciowej.
 
 Zamiast przekazywać zapytania DNS dalej do publicznych resolverów, Unbound kontaktuje się bezpośrednio z autorytatywnymi serwerami DNS — począwszy od tzw. root servers — a następnie iteracyjnie pobiera odpowiedzi od serwerów nadrzędnych (TLD) aż do uzyskania odpowiedzi końcowej. Dzięki temu możliwe jest uniezależnienie infrastruktury od zewnętrznych dostawców oraz lepsza kontrola nad ruchem DNS.
 
@@ -299,7 +380,7 @@ Współpraca Pi-hole z Unbound stanowi nowoczesne i bezpieczne rozwiązanie DNS,
 
 \subsection{Squid Proxy – filtrowanie i kontrola dostępu do Internetu}
 
-\textbf{Squid Proxy} pełni w systemie funkcję transparentnego pośrednika w komunikacji HTTP i HTTPS pomiędzy urządzeniami końcowymi a zasobami Internetu. Jego zadaniem jest nie tylko buforowanie treści w celu przyspieszenia dostępu i ograniczenia ruchu wychodzącego, ale przede wszystkim implementacja reguł filtrowania, kontroli dostępu oraz logowania zdarzeń sieciowych w warstwie aplikacji.
+\textbf{Squid Proxy}\cite{squid-docs} pełni w systemie funkcję transparentnego pośrednika w komunikacji HTTP i HTTPS pomiędzy urządzeniami końcowymi a zasobami Internetu. Jego zadaniem jest nie tylko buforowanie treści w celu przyspieszenia dostępu i ograniczenia ruchu wychodzącego, ale przede wszystkim implementacja reguł filtrowania, kontroli dostępu oraz logowania zdarzeń sieciowych w warstwie aplikacji.
 
 W niniejszym projekcie Squid został uruchomiony jako osobny kontener w środowisku Docker, w ramach tej samej infrastruktury opartej na Raspberry Pi 5. Kontener został przydzielony do sieci wirtualnej wspólnej z kontenerem Pi-hole i Unbound, co umożliwia jego pełną integrację z warstwą DNS. Urządzenia końcowe w sieci lokalnej (komputery, smartfony, tablety) kierują ruch HTTP/S do Squida, który następnie rozwiązuje adresy DNS za pośrednictwem Pi-hole i Unbound, oraz przekazuje żądania dalej — do Internetu.
 
@@ -327,9 +408,9 @@ Podsumowując, Squid Proxy w tej architekturze pełni kluczową rolę w wymuszan
 
 \subsection{Suricata – system detekcji zagrożeń IDS}
 
-\textbf{Suricata} to zaawansowany system detekcji zagrożeń (IDS – Intrusion Detection System), który został wdrożony w ramach systemu bezpieczeństwa w celu monitorowania i analizowania ruchu sieciowego w czasie rzeczywistym. Narzędzie to wykorzystuje mechanizmy inspekcji głębokiej (Deep Packet Inspection, DPI), analizy protokołów aplikacyjnych (np. HTTP, TLS, DNS, FTP) oraz wykrywania anomalii, aby identyfikować potencjalnie złośliwe działania w sieci lokalnej.
+\textbf{Suricata}\cite{suricata-wiki} to zaawansowany system detekcji zagrożeń (IDS – Intrusion Detection System), który został wdrożony w ramach systemu bezpieczeństwa w celu monitorowania i analizowania ruchu sieciowego w czasie rzeczywistym. Narzędzie to wykorzystuje mechanizmy inspekcji głębokiej (Deep Packet Inspection, DPI), analizy protokołów aplikacyjnych (np. HTTP, TLS, DNS, FTP) oraz wykrywania anomalii, aby identyfikować potencjalnie złośliwe działania w sieci lokalnej\cite{suricata-docs}.
 
-W prezentowanej architekturze Suricata działa w trybie pasywnym jako komponent analizujący ruch przepływający przez interfejsy wirtualne sieci Docker. Została uruchomiona w osobnym kontenerze z ograniczonymi uprawnieniami, co zapewnia zarówno izolację od reszty systemu, jak i łatwość zarządzania. Kontener Suricaty został przypisany do tej samej sieci wirtualnej co usługi Pi-hole, Squid Proxy i Unbound, dzięki czemu może obserwować cały wewnętrzny ruch DNS i HTTP/S generowany przez urządzenia końcowe w sieci.
+W prezentowanej architekturze Suricata działa w trybie pasywnym jako komponent analizujący ruch przepływający przez interfejsy wirtualne sieci Docker. Została uruchomiona w osobnym kontenerze z ograniczonymi uprawnieniami, co zapewnia zarówno izolację od reszty systemu, jak i łatwość zarządzania. Kontener Suricaty został przypisany do tej samej sieci wirtualnej co usługi Pi-hole, Squid Proxy i Unbound, dzięki czemu może obserwować cały wewnętrzny ruch DNS i HTTP/S generowany przez urządzenia końcowe w sieci\cite{suricata-docs}.
 
 Główne funkcje Suricaty obejmują:
 \begin{itemize}
@@ -360,21 +441,22 @@ Podsumowując, Suricata pełni w systemie rolę aktywnego czujnika sieciowego, k
 
 Jednym z istotnych elementów zabezpieczenia wdrożonego systemu jest lokalna zapora sieciowa (\textbf{firewall}) skonfigurowana bezpośrednio na hoście systemowym, czyli Raspberry Pi 5. Jej zadaniem jest ograniczenie dostępu do usług uruchamianych w kontenerach Docker, kontrola portów i interfejsów sieciowych, a także zapobieganie nieautoryzowanemu dostępowi do krytycznych komponentów systemu bezpieczeństwa.
 
-W projekcie zastosowano zaporę sieciową \textbf{UFW} (ang. \textit{Uncomplicated Firewall}), która jest prostą nakładką na mechanizm \textbf{iptables}. UFW pozwala w sposób deklaratywny i czytelny definiować reguły dostępu na poziomie portów, adresów IP oraz protokołów. Dzięki integracji z systemem init (`systemd`) firewall jest uruchamiany automatycznie przy starcie systemu, zapewniając ochronę już od momentu podniesienia interfejsów sieciowych.
+W projekcie zastosowano zaporę sieciową \textbf{UFW} (ang. \textit{Uncomplicated Firewall}), która jest prostą nakładką na mechanizm \textbf{iptables} \cite{ufw-docs}. UFW pozwala w sposób deklaratywny i czytelny definiować reguły dostępu na poziomie portów, adresów IP oraz protokołów. Dzięki integracji z systemem init (`systemd`) firewall jest uruchamiany automatycznie przy starcie systemu, zapewniając ochronę już od momentu podniesienia interfejsów sieciowych.
 
 Podstawowe założenia przy konfiguracji firewalla to:
 \begin{itemize}
     \item \textbf{domyślne blokowanie wszystkich połączeń przychodzących} (ang. \textit{default deny}),
-    \item \textbf{zezwolenie tylko na ruch wymagany do działania usług}: DNS (53), HTTP (80), HTTPS (443), Grafana (3000), Graylog (9000), Portainer (9443),
+    \item \textbf{zezwolenie tylko na ruch wymagany do działania usług}: DNS (53), HTTP (80), Squid (3128, 3129), Graylog (9000, 5044), Elasticsearch (9200), Grafana (3000), Portainer (9010),
     \item ograniczenie dostępu do interfejsów zarządzających tylko z zaufanych adresów IP (np. statyczny adres IP komputera administratora),
     \item brak dostępu SSH z zewnątrz (tylko z sieci lokalnej),
     \item weryfikacja logów UFW w celu wykrywania prób skanowania portów lub ataków brute-force.
 \end{itemize}
 
-Dodatkowo, część zabezpieczeń została zaimplementowana na poziomie sieci Docker. Dzięki wykorzystaniu dedykowanych sieci wirtualnych (Docker bridge networks) możliwe było:
+Dodatkowo, część zabezpieczeń została zaimplementowana na poziomie sieci Docker. Dzięki wykorzystaniu dedykowanych sieci wirtualnych (\texttt{Docker bridge networks}) możliwe było:
 \begin{itemize}
-    \item całkowite odseparowanie usług wewnętrznych (np. Filebeat, Elasticsearch) od dostępu z zewnątrz,
-    \item ograniczenie dostępu do Pi-hole i Unbound wyłącznie z kontenera Squid,
+    \item całkowite odseparowanie usług wewnętrznych (np. Firefox, Pi-hole, Unbound, Squid) w sieci \texttt{internal\_network},
+    \item ograniczenie dostępu do Pi-hole i Unbound wyłącznie z kontenera Squid i Firefox,
+    \item kontrola przepływu logów z Suricata i Squida do Filebeat (działającego na hoście),
     \item stworzenie zamkniętego środowiska, w którym kontenery komunikują się tylko tam, gdzie jest to konieczne.
 \end{itemize}
 
@@ -387,21 +469,28 @@ Wszystkie otwarte porty zostały dokładnie skontrolowane poleceniami:
 
 Przykładowe otwarte porty po wdrożeniu systemu to:
 \begin{itemize}
-    \item \textbf{53/tcp, 53/udp} – DNS (Pi-hole),
-    \item \textbf{80/tcp} – panel Pi-hole i proxy Squid (tylko lokalny dostęp),
-    \item \textbf{9000/tcp} – panel Graylog (z ograniczeniem do IP administratora),
-    \item \textbf{3000/tcp} – Grafana (dostęp tylko z sieci LAN),
-    \item \textbf{9443/tcp} – Portainer (panel do zarządzania Dockerem),
-    \item inne porty zablokowane lub otwierane tymczasowo do debugowania/testów.
+    \item \textbf{53/tcp, 53/udp} – DNS (Pi-hole, Unbound),
+    \item \textbf{80/tcp, 443/tcp} – interfejs webowy Pi-hole,
+    \item \textbf{3128/tcp} – Squid Proxy (główna instancja),
+    \item \textbf{3129/tcp} – Squid Proxy (dla urządzeń mobilnych),
+    \item \textbf{5044/tcp} – odbiór logów z Filebeat przez Graylog,
+    \item \textbf{9000/tcp} – panel Graylog (logi i analiza),
+    \item \textbf{9200/tcp} – Elasticsearch (indeksowanie logów),
+    \item \textbf{3000/tcp} – Grafana (monitoring i dashboardy),
+    \item \textbf{9010/tcp} – Portainer (zarządzanie kontenerami),
+    \item \textbf{4000/tcp, 4001/tcp} – Firefox (przeglądarka kontenerowa, przekierowanie GUI).
 \end{itemize}
 
 Firewall, w połączeniu z segmentacją usług w kontenerach oraz odpowiednią konfiguracją Dockera, stanowi fundament bezpieczeństwa całej infrastruktury. Ograniczenie dostępności usług tylko do niezbędnych interfejsów i adresów IP znacząco zmniejsza powierzchnię ataku i podnosi odporność systemu na nieautoryzowane próby dostępu.
+
 
 \subsection{Przeglądarka Firefox w kontenerze – izolowane przeglądanie}
 
 W ramach zwiększenia bezpieczeństwa przeglądania Internetu w środowisku domowym, wdrożono instancję przeglądarki \textbf{Firefox} uruchamianą w kontenerze Docker. Celem tego rozwiązania jest pełna izolacja środowiska przeglądarki od systemu operacyjnego hosta oraz pozostałych usług infrastruktury bezpieczeństwa, przy jednoczesnym zapewnieniu funkcjonalności niezbędnej do przeglądania zasobów sieciowych.
 
-Kontenerowa wersja Firefox została oparta o gotowe obrazy bazujące na lekkich dystrybucjach Linuxa (np. Alpine lub Debian slim), z uruchomieniem interfejsu graficznego przez protokół \textbf{VNC} lub z użyciem \textbf{noVNC}, co pozwala na dostęp do przeglądarki bezpośrednio z poziomu przeglądarki webowej z innego urządzenia (np. laptopa w sieci domowej).
+Kontenerowa wersja Firefox została oparta o obraz \texttt{linuxserver/firefox}, z uruchomieniem interfejsu graficznego za pomocą technologii \textbf{noVNC}, co umożliwia dostęp do przeglądarki bezpośrednio z poziomu przeglądarki internetowej w sieci lokalnej. Usługa ta działa na portach \texttt{4000/tcp} (interfejs graficzny) oraz \texttt{4001/tcp} (backend VNC), które zostały zmapowane z kontenera do hosta w celu umożliwienia zdalnego, ale ograniczonego dostępu.
+
+Przeglądarka została uruchomiona w izolowanej sieci Dockera o nazwie \texttt{firefox\_network}, gdzie nie współdzieli przestrzeni sieciowej z pozostałymi komponentami bezpieczeństwa. Co istotne, Firefox korzysta z dedykowanego resolvera DNS – osobnego kontenera \textbf{Unbound}, który jest dostępny pod adresem \texttt{172.30.0.2}. Rozwiązanie to całkowicie oddziela zapytania DNS generowane przez Firefox od reszty systemu (np. Pi-hole), umożliwiając niezależną kontrolę i monitoring tych zapytań.
 
 \textbf{Główne zalety uruchamiania przeglądarki w kontenerze Docker:}
 \begin{itemize}
@@ -412,7 +501,7 @@ Kontenerowa wersja Firefox została oparta o gotowe obrazy bazujące na lekkich 
     \item \textbf{Zdalny dostęp z autoryzacją} – dostęp do kontenera możliwy jest tylko z sieci lokalnej i po uprzednim zalogowaniu (np. przez hasło VNC).
 \end{itemize}
 
-Dodatkowo, kontener został przydzielony do własnej sieci wirtualnej Docker i nie ma dostępu do usług infrastruktury bezpieczeństwa (Pi-hole, Graylog, itp.), co zapobiega ewentualnemu wykorzystaniu przeglądarki jako wektora ataku na inne komponenty systemu.
+Dodatkowo, kontener został odseparowany od usług infrastruktury bezpieczeństwa (takich jak Pi-hole, Graylog, Filebeat, itp.) i ma dostęp wyłącznie do Internetu poprzez proxy oraz do swojego lokalnego DNS. Taka konfiguracja zapobiega wykorzystaniu przeglądarki jako potencjalnego punktu wejścia do systemu i uniemożliwia skanowanie innych komponentów z poziomu przeglądarki.
 
 Z punktu widzenia cyberbezpieczeństwa, rozwiązanie to realizuje zasadę tzw. \textit{sandboxingu} – uruchamiania aplikacji w środowisku kontrolowanym, z jasno zdefiniowanymi ograniczeniami. Dzięki temu możliwe jest:
 \begin{itemize}
@@ -425,9 +514,10 @@ Całość została zintegrowana z systemem monitoringu, który śledzi zasoby zu
 
 Rozwiązanie to jest szczególnie przydatne w domowych środowiskach z dostępem dzieci lub mniej zaawansowanych użytkowników, zapewniając dodatkową warstwę ochrony bez konieczności instalowania oprogramowania na fizycznych urządzeniach końcowych.
 
+
 \subsection{Portainer – zarządzanie kontenerami Docker}
 
-\textbf{Portainer} to lekkie, webowe narzędzie służące do zarządzania kontenerami Docker, obrazami, sieciami oraz wolumenami. W prezentowanym systemie bezpieczeństwa Portainer został wdrożony jako element wspierający administrację i monitorowanie infrastruktury kontenerowej, zbudowanej na platformie Raspberry Pi 5.
+\textbf{Portainer}\cite{portainer-docs} to lekkie, webowe narzędzie służące do zarządzania kontenerami Docker, obrazami, sieciami oraz wolumenami. W prezentowanym systemie bezpieczeństwa Portainer został wdrożony jako element wspierający administrację i monitorowanie infrastruktury kontenerowej, zbudowanej na platformie Raspberry Pi 5.
 
 Portainer został uruchomiony jako osobny kontener Docker z dostępem do lokalnego demona Dockera poprzez gniazdo \texttt{/var/run/docker.sock}. Interfejs administracyjny udostępniany jest na porcie \textbf{9443} z wykorzystaniem HTTPS i zabezpieczony silnym hasłem oraz uwierzytelnianiem lokalnym. Dostęp do panelu możliwy jest wyłącznie z sieci lokalnej, dzięki regułom zapory ogniowej (UFW) oraz konfiguracji sieci Dockera.
 
@@ -458,7 +548,7 @@ W środowisku domowym lub małym laboratorium cyberbezpieczeństwa Portainer sta
 
 \subsection{Filebeat – przesyłanie logów}
 
-\textbf{Filebeat} to lekki agent typu \textit{log shipper}, który został wdrożony w systemie bezpieczeństwa w celu zbierania, przetwarzania i przesyłania logów generowanych przez różne komponenty infrastruktury. W prezentowanym środowisku Filebeat działa bezpośrednio na hoście systemowym (Raspberry Pi 5), a jego głównym zadaniem jest agregacja danych z takich usług jak \textbf{Suricata IDS}, \textbf{Squid Proxy}, \textbf{Pi-hole} oraz skryptów monitorujących, a następnie przesyłanie ich do centralnego systemu analitycznego \textbf{Graylog}.
+\textbf{Filebeat}\cite{filebeat-docs} to lekki agent typu \textit{log shipper}, który został wdrożony w systemie bezpieczeństwa w celu zbierania, przetwarzania i przesyłania logów generowanych przez różne komponenty infrastruktury. W prezentowanym środowisku Filebeat działa bezpośrednio na hoście systemowym (Raspberry Pi 5), a jego głównym zadaniem jest agregacja danych z takich usług jak \textbf{Suricata IDS}, \textbf{Squid Proxy}, \textbf{Pi-hole} oraz skryptów monitorujących, a następnie przesyłanie ich do centralnego systemu analitycznego \textbf{Graylog}.
 
 W odróżnieniu od standardowej konfiguracji GELF/UDP, zastosowano bardziej elastyczny i niezawodny sposób przesyłania danych – poprzez port \textbf{5044} z użyciem protokołu \textbf{Beats}, obsługiwanego w Graylogu przez odpowiednią wtyczkę typu Beats Input.
 
@@ -538,7 +628,7 @@ Filebeat działa w trybie pasywnym, bez ingerencji w logikę działania źródł
 
 \subsection{Graylog – analiza i korelacja zdarzeń}
 
-\textbf{Graylog} to zaawansowana platforma do zbierania, przeszukiwania, korelowania oraz wizualizacji logów systemowych i sieciowych. W prezentowanej architekturze pełni kluczową rolę w centralizacji danych generowanych przez komponenty bezpieczeństwa, takie jak \textbf{Suricata IDS}, \textbf{Squid Proxy}, \textbf{Pi-hole}, a także agent przesyłający logi – \textbf{Filebeat}.
+\textbf{Graylog}\cite{graylog-docs} to zaawansowana platforma do zbierania, przeszukiwania, korelowania oraz wizualizacji logów systemowych i sieciowych. W prezentowanej architekturze pełni kluczową rolę w centralizacji danych generowanych przez komponenty bezpieczeństwa, takie jak \textbf{Suricata IDS}, \textbf{Squid Proxy}, \textbf{Pi-hole}, a także agent przesyłający logi – \textbf{Filebeat}.
 
 Graylog został uruchomiony jako kontener Docker, działający równolegle z usługami \textbf{MongoDB} (odpowiedzialna za przechowywanie konfiguracji i dashboardów) oraz \textbf{Elasticsearch} (indeksujący dane i umożliwiający szybkie przeszukiwanie logów). Wszystkie komponenty zostały umieszczone w wydzielonej sieci Docker z ograniczonym dostępem z zewnątrz.
 
@@ -602,7 +692,7 @@ Takie trójwarstwowe podejście pozwala na skalowalność, stabilność i wydajn
 
 \subsection{Prometheus – zbieranie metryk}
 
-\textbf{Prometheus} to narzędzie typu open-source służące do monitorowania systemów oraz zbierania metryk czasowych (tzw. time-series data). W prezentowanej architekturze pełni on funkcję głównego kolektora danych operacyjnych, gromadząc informacje o stanie systemu, kontenerów Docker, wykorzystaniu zasobów oraz dostępności usług bezpieczeństwa.
+\textbf{Prometheus}\cite{prometheus-docs} to narzędzie typu open-source służące do monitorowania systemów oraz zbierania metryk czasowych (tzw. time-series data). W prezentowanej architekturze pełni on funkcję głównego kolektora danych operacyjnych, gromadząc informacje o stanie systemu, kontenerów Docker, wykorzystaniu zasobów oraz dostępności usług bezpieczeństwa.
 
 Prometheus został uruchomiony jako kontener Docker, skonfigurowany do cyklicznego odpytywania określonych punktów końcowych (tzw. \texttt{/metrics}) zdefiniowanych w pliku \texttt{prometheus.yml}. Zbierane są m.in. następujące metryki:
 \begin{itemize}
@@ -625,7 +715,7 @@ Prometheus zapewnia:
 
 \subsection{Grafana – wizualizacja danych i metryk}
 
-\textbf{Grafana} to elastyczne narzędzie do wizualizacji danych telemetrycznych, w tym danych metrycznych z Prometheusa. W systemie bezpieczeństwa prezentowanym w niniejszej pracy Grafana pełni funkcję głównego interfejsu do obserwacji zasobów i usług w czasie rzeczywistym, umożliwiając administratorowi bieżące śledzenie stanu infrastruktury oraz identyfikację anomalii.
+\textbf{Grafana}\cite{grafana-docs} to elastyczne narzędzie do wizualizacji danych telemetrycznych, w tym danych metrycznych z Prometheusa. W systemie bezpieczeństwa prezentowanym w niniejszej pracy Grafana pełni funkcję głównego interfejsu do obserwacji zasobów i usług w czasie rzeczywistym, umożliwiając administratorowi bieżące śledzenie stanu infrastruktury oraz identyfikację anomalii.
 
 Grafana została uruchomiona w postaci kontenera Docker, zintegrowanego bezpośrednio z Prometheusem poprzez dedykowany datasource. Dzięki temu możliwe jest prezentowanie danych zbieranych przez Prometheusa w formie:
 \begin{itemize}
