@@ -19,6 +19,20 @@
 \usepackage{hyperref}
 \usepackage{url}
 
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!10},
+  keywordstyle=\color{blue}\bfseries,
+  showstringspaces=false,
+  stringstyle=\color{red!70!black},
+  commentstyle=\color{gray}\itshape
+}
+
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, positioning}
 %\usepackage[
@@ -52,7 +66,7 @@
     Projekt i wdrożenie systemu bezpieczeństwa \\ 
     sieciowego w środowisku lokalnym z \\
     wykorzystaniem konteneryzacji \\
-    wersja 05.2025
+    wersja 06.2025
 }
 
 \engtitle{ % Tytuł po angielsku do angielskiego streszczenia
@@ -156,7 +170,7 @@ Projekt został zrealizowany zgodnie z podejściem iteracyjnym, z podziałem na 
 
 Prace rozpoczęto od analizy możliwości sprzętowych oraz wyboru otwartoźródłowych narzędzi najlepiej odpowiadających założonym celom funkcjonalnym. Następnie zaprojektowano architekturę logiczną środowiska, w której istotne znaczenie miała separacja usług w kontenerach Docker i ich komunikacja przez dedykowane sieci wirtualne.
 
-W kolejnych krokach skonfigurowano poszczególne komponenty systemu: serwery DNS, serwer proxy, system IDS, agregator logów oraz mechanizmy monitorujące. W celu zapewnienia spójności, dla każdej usługi utworzono oddzielne pliki konfiguracyjne oraz definicje kontenerów (Docker Compose)\cite{lukaszfd_dockercompose2024}. Równolegle prowadzono testy funkcjonalne poszczególnych modułów, weryfikując poprawność działania filtracji, detekcji i logowania zdarzeń.
+W kolejnych krokach skonfigurowano poszczególne komponenty systemu: serwery DNS, serwer proxy, system IDS, agregator logów oraz mechanizmy monitorujące. W celu zapewnienia spójności, dla każdej usługi utworzono oddzielne pliki konfiguracyjne\cite{github-homenetguardian} oraz definicje kontenerów (Docker Compose)\cite{lukaszfd_dockercompose2024}. Równolegle prowadzono testy funkcjonalne poszczególnych modułów, weryfikując poprawność działania filtracji, detekcji i logowania zdarzeń.
 
 Metodyka pracy zakładała również zastosowanie dokumentacji oficjalnej (ang. vendor documentation) oraz materiałów ogólnodostępnych. W celu oceny skuteczności wdrożonych mechanizmów wykorzystywano dane z logów systemowych oraz panele monitorujące (dashboardy) stworzone w Grafanie i Graylogu.
 
@@ -185,7 +199,7 @@ Całość została umieszczona w dedykowanej obudowie \textbf{Argon NEO 5 M.2 NV
     \label{fig:argon-neo}
 \end{figure}
 
-Platforma systemowa oparta została na systemie \textbf{Raspberry Pi OS Lite}\cite{raspberry-os}, będącym oficjalną dystrybucją Linuxa wspieraną przez Fundację Raspberry Pi. System ten zapewnia kompatybilność ze środowiskiem Docker oraz dostęp do bogatego repozytorium pakietów, co znacząco ułatwia wdrażanie usług kontenerowych. Wszystkie kontenery zostały uruchomione na silniku \textbf{Docker Engine} w wersji zgodnej z architekturą ARM64, natomiast ich zarządzanie odbywa się za pośrednictwem \textit{Portainera}.
+Platforma systemowa oparta została na systemie \textbf{Raspberry Pi OS Lite}\cite{raspberry-os}, będącym oficjalną dystrybucją Linuxa wspieraną przez Fundację Raspberry Pi. System ten zapewnia kompatybilność ze środowiskiem Docker oraz dostęp do bogatego repozytorium pakietów, co znacząco ułatwia wdrażanie usług kontenerowych. Wszystkie kontenery zostały uruchomione na silniku \textbf{Docker Engine} w wersji zgodnej z architekturą ARM64, natomiast ich zarządzanie odbywa się za pośrednictwem \textit{Portainera}\cite{portainer-docs}.
 
 Taka konfiguracja sprzętowo-programowa spełnia wymagania wydajnościowe i funkcjonalne projektu, zapewniając jednocześnie niski pobór mocy, cichą pracę i wysoką stabilność w warunkach domowych.
 
@@ -193,7 +207,7 @@ Taka konfiguracja sprzętowo-programowa spełnia wymagania wydajnościowe i funk
 
 W ramach niniejszego projektu zdecydowano się na wykorzystanie lekkiej formy wirtualizacji, jaką jest konteneryzacja z użyciem platformy Docker\cite{docker-wiki}. Rozwiązanie to zostało wybrane ze względu na swoją elastyczność, wysoką wydajność oraz szerokie wsparcie społeczności i dostawców narzędzi open-source. Konteneryzacja umożliwia uruchamianie wielu odseparowanych usług w ramach jednego systemu operacyjnego, bez konieczności tworzenia pełnych maszyn wirtualnych. Dzięki temu znacznie redukowane są koszty zasobów oraz czas potrzebny na wdrożenie i zarządzanie poszczególnymi komponentami systemu bezpieczeństwa.
 
-\textbf{Docker}~\ref{fig:hunter-docker} pozwala na budowanie i uruchamianie aplikacji w formie kontenerów, które zawierają wszystkie niezbędne zależności — biblioteki, pliki konfiguracyjne oraz kod aplikacyjny. Każdy komponent systemu bezpieczeństwa (np. \textit{Pi-hole}, \textit{Unbound}, \textit{Suricata}, \textit{Graylog}, \textit{Prometheus}, \textit{Grafana}) został umieszczony w osobnym kontenerze, co znacząco zwiększa modularność i ułatwia konserwację systemu. Dodatkowo, każda usługa uruchamiana jest w odrębnej sieci wirtualnej Dockera, co umożliwia precyzyjne kontrolowanie ruchu sieciowego między kontenerami i hostem oraz zwiększa bezpieczeństwo całego środowiska.
+\textbf{Docker} pozwala na budowanie i uruchamianie aplikacji w formie kontenerów~\ref{fig:hunter-docker}, które zawierają wszystkie niezbędne zależności — biblioteki, pliki konfiguracyjne oraz kod aplikacyjny. Każdy komponent systemu bezpieczeństwa (np. \textit{Pi-hole}, \textit{Unbound}, \textit{Suricata}, \textit{Graylog}, \textit{Prometheus}, \textit{Grafana}) został umieszczony w osobnym kontenerze, co znacząco zwiększa modularność i ułatwia konserwację systemu. Dodatkowo, każda usługa uruchamiana jest w odrębnej sieci wirtualnej Dockera, co umożliwia precyzyjne kontrolowanie ruchu sieciowego między kontenerami i hostem oraz zwiększa bezpieczeństwo całego środowiska.
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{img/docker.png}
@@ -201,7 +215,7 @@ W ramach niniejszego projektu zdecydowano się na wykorzystanie lekkiej formy wi
     \label{fig:hunter-docker}
 \end{figure}
 
-Konfiguracja kontenerów została zautomatyzowana przy użyciu pliku \texttt{docker-compose.yml}, który umożliwia definiowanie całego stosu usług oraz ich zależności w sposób przejrzysty i powtarzalny. Taka forma zarządzania konfiguracją ułatwia proces wdrożenia oraz odtwarzania środowiska na innych urządzeniach lub po awarii.
+Konfiguracja kontenerów została zautomatyzowana przy użyciu pliku \texttt{docker-compose.yml} \cite{lukaszfd_dockercompose2024}, który umożliwia definiowanie całego stosu usług oraz ich zależności w sposób przejrzysty i powtarzalny. Taka forma zarządzania konfiguracją ułatwia proces wdrożenia oraz odtwarzania środowiska na innych urządzeniach lub po awarii.
 
 W celu ułatwienia zarządzania środowiskiem kontenerowym wykorzystano narzędzie \textbf{Portainer} — graficzny interfejs użytkownika do zarządzania instancjami Docker~\ref{fig:portainer-dashboard}. Portainer pozwala na monitorowanie kontenerów, wolumenów, obrazów, sieci oraz logów systemowych w czasie rzeczywistym. Dzięki niemu możliwe jest również szybkie uruchamianie i restartowanie usług, tworzenie nowych środowisk oraz kontrola nad dostępem użytkowników. Interfejs Portainera został zabezpieczony autoryzacją z hasłem i ograniczonym dostępem po porcie TCP/HTTPS, co stanowi dodatkowy element ochrony.
 \begin{figure}[H]
@@ -380,9 +394,15 @@ Zastosowanie oddzielnych sieci dla poszczególnych typów komponentów odzwierci
 
 Pi-hole został uruchomiony w kontenerze Docker na platformie Raspberry Pi 5, co umożliwia jego łatwą aktualizację, przenoszenie oraz niezależne zarządzanie. Kontener został skonfigurowany z odpowiednimi wolumenami trwałymi, umożliwiającymi zachowanie ustawień i statystyk po restarcie\cite{config-pihole}. W konfiguracji uwzględniono mapowanie portów 53 (UDP i TCP) dla zapytań DNS oraz port 80 dla interfejsu webowego, z dodatkowym ograniczeniem dostępu za pomocą firewalla.
 
-Pi-hole został połączony z usługą \textbf{Unbound}, która działa jako lokalny, rekurencyjny resolver DNS. Taki układ eliminuje konieczność korzystania z zewnętrznych serwerów DNS (np. Google, Cloudflare), co znacząco poprawia prywatność użytkownika i uniezależnia system od komercyjnych operatorów. Zapytania rozwiązywane są bezpośrednio od źródła (root DNS servers), z wykorzystaniem mechanizmów weryfikacji DNSSEC.
+Pi-hole został połączony z usługą \textbf{Unbound}, która działa jako lokalny, rekurencyjny resolver DNS. Taki układ eliminuje konieczność korzystania z zewnętrznych serwerów DNS\cite{dns-wikipedia} (np. Google, Cloudflare), co znacząco poprawia prywatność użytkownika i uniezależnia system od komercyjnych operatorów. Zapytania rozwiązywane są bezpośrednio od źródła (root DNS servers), z wykorzystaniem mechanizmów weryfikacji DNSSEC.
 
-Lista blokowanych domen oparta jest o popularne źródła publiczne, takie jak \texttt{https://firebog.net}, uzupełnione o ręcznie dodane wpisy dopasowane do potrzeb użytkowników domowych. Pi-hole rejestruje każde zapytanie DNS i udostępnia statystyki w czytelnej formie webowego interfejsu administracyjnego. Użytkownik może przeglądać historię zapytań, najczęściej blokowane domeny, statystyki według urządzeń, a także dynamicznie zarządzać listami dozwolonych (whitelist) i zablokowanych (blacklist) domen.
+Lista blokowanych domen oparta jest o popularne źródła publiczne, takie jak \texttt{https://firebog.net}, uzupełnione o ręcznie dodane wpisy dopasowane do potrzeb użytkowników domowych. Pi-hole rejestruje każde zapytanie DNS i udostępnia statystyki w czytelnej formie webowego interfejsu administracyjnego. Użytkownik może przeglądać historię zapytań, najczęściej blokowane domeny, statystyki według urządzeń, a także dynamicznie zarządzać listami dozwolonych (whitelist) i zablokowanych (blacklist) domen ~\ref{fig:pihole-listy}.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{img/pihole_listy.png}
+    \caption{Panel zarządzania Pi-hole – Przykładowe listy zaimportowane do Pihole.}
+    \label{fig:pihole-listy}
+\end{figure}
 
 Dodatkowo skonfigurowano opcję logowania DNS w formacie syslog, co umożliwia przesyłanie logów do narzędzia \textbf{Filebeat}, a następnie do systemu analitycznego \textbf{Graylog}. Dzięki temu możliwe jest korelowanie zapytań DNS z innymi zdarzeniami w sieci oraz budowa dashboardów z wizualizacją aktywności DNS.
 
@@ -398,15 +418,15 @@ W ramach systemu Pi-hole stanowi zatem kluczowy komponent w warstwie prewencji i
 
 \subsection{Unbound jako rekurencyjny resolver DNS}
 
-\textbf{Unbound}\cite{unbound-docs} pełni w opisywanym systemie rolę lokalnego, rekurencyjnego resolvera DNS, który współpracuje bezpośrednio z serwerem Pi-hole. Jego głównym zadaniem jest niezależne i bezpieczne rozwiązywanie zapytań DNS, bez udziału zewnętrznych operatorów (takich jak Google DNS czy Cloudflare), co znacząco zwiększa poziom prywatności i integralności komunikacji sieciowej.
+\textbf{Unbound}\cite{unbound-docs} pełni w opisywanym systemie rolę lokalnego, rekurencyjnego resolvera DNS, który współpracuje bezpośrednio z serwerem Pi-hole. Jego głównym zadaniem jest niezależne i bezpieczne rozwiązywanie zapytań DNS\cite{dns-wikipedia}, bez udziału zewnętrznych operatorów (takich jak Google DNS czy Cloudflare), co znacząco zwiększa poziom prywatności i integralności komunikacji sieciowej.
 
-Zamiast przekazywać zapytania DNS dalej do publicznych resolverów, Unbound kontaktuje się bezpośrednio z autorytatywnymi serwerami DNS — począwszy od tzw. root servers — a następnie iteracyjnie pobiera odpowiedzi od serwerów nadrzędnych (TLD) aż do uzyskania odpowiedzi końcowej. Dzięki temu możliwe jest uniezależnienie infrastruktury od zewnętrznych dostawców oraz lepsza kontrola nad ruchem DNS.
+Zamiast przekazywać zapytania DNS dalej do publicznych resolverów, Unbound kontaktuje się bezpośrednio z autorytatywnymi serwerami DNS — począwszy od tzw. root servers — a następnie iteracyjnie pobiera odpowiedzi od serwerów nadrzędnych (TLD)\cite{tld-wikipedia} aż do uzyskania odpowiedzi końcowej. Dzięki temu możliwe jest uniezależnienie infrastruktury od zewnętrznych dostawców oraz lepsza kontrola nad ruchem DNS.
 
 W środowisku projektu Unbound został skonfigurowany jako osobny kontener Docker, z dostępem jedynie z wewnętrznej sieci Dockerowej, do której podłączony jest również kontener Pi-hole\cite{config-unbound}. W ten sposób zapytania DNS przychodzące od klientów trafiają najpierw do Pi-hole (który wykonuje filtrowanie), a następnie przekazywane są do Unbound w celu rekurencyjnego rozwiązania. Taka dwupoziomowa struktura poprawia zarówno bezpieczeństwo, jak i dokładność obsługi zapytań.
 
 Konfiguracja Unbound została oparta na oficjalnych wytycznych projektu Pi-hole, z dodatkowymi usprawnieniami bezpieczeństwa:
 \begin{itemize}
-    \item włączono \textbf{DNSSEC} – mechanizm weryfikacji kryptograficznej odpowiedzi DNS,
+    \item włączono \textbf{DNSSEC}\cite{dnssec-wikipedia} – mechanizm weryfikacji kryptograficznej odpowiedzi DNS,
     \item ograniczono maksymalną liczbę jednoczesnych klientów, aby zapobiec atakom DDoS,
     \item skonfigurowano Unbound do pracy tylko w trybie lokalnym, nasłuchującym jedynie na interfejsach wewnętrznych,
     \item ustawiono cache DNS w celu przyspieszenia odpowiedzi na często powtarzające się zapytania.
@@ -430,12 +450,19 @@ W niniejszym projekcie Squid został uruchomiony jako osobny kontener w środowi
 
 Konfiguracja Squida została dostosowana do potrzeb środowiska domowego, z naciskiem na bezpieczeństwo, przejrzystość i możliwość rozbudowy. Wdrożono następujące mechanizmy:
 \begin{itemize}
-    \item \textbf{ACL (Access Control Lists)} – listy kontroli dostępu definiujące, które adresy IP, domeny lub kategorie URL mogą być dostępne, a które blokowane,
+    \item \textbf{ACL (Access Control Lists)}~\ref{fig:squid-acl} – listy kontroli dostępu definiujące, które adresy IP, domeny lub kategorie URL mogą być dostępne, a które blokowane,
     \item \textbf{Blokowanie treści niepożądanych} – filtrowanie stron zawierających reklamy, treści dla dorosłych lub znane z hostowania złośliwego oprogramowania,
     \item \textbf{Zarządzanie ruchem HTTPS} – obsługa połączeń TLS z pominięciem inspekcji pakietów, z zachowaniem logów statystycznych na poziomie domen,
     \item \textbf{Cache HTTP} – buforowanie często odwiedzanych zasobów w celu oszczędzania pasma i szybszego ładowania stron,
     \item \textbf{Transparent proxy} – możliwość pracy w trybie przeźroczystym, gdzie ruch przekierowywany jest automatycznie z poziomu routera/firewalla (w przyszłych wdrożeniach).
 \end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{img/squid-acl.png}
+    \caption{Plik konfiguracyjny Squid Proxy – Implementacja list ACL.}
+    \label{fig:squid-acl}
+\end{figure}
 
 Wszystkie logi generowane przez Squida są kierowane do systemu \textbf{Filebeat}, a następnie przesyłane do \textbf{Grayloga}, gdzie podlegają korelacji z innymi zdarzeniami sieciowymi (np. alertami z Suricaty czy zapytaniami DNS). Dzięki temu możliwe jest śledzenie i analiza aktywności użytkowników oraz wykrywanie potencjalnych anomalii, takich jak próby dostępu do nieautoryzowanych serwisów, złośliwy ruch wychodzący czy wykorzystanie tuneli proxy.
 
@@ -465,7 +492,32 @@ Główne funkcje Suricaty obejmują:
     \item integrację z systemami logowania i monitoringu (np. Filebeat i Graylog).
 \end{itemize}
 
-Reguły detekcji zostały pobrane z publicznie dostępnego zestawu \textbf{ET Open Rules}, który jest stale aktualizowany i zawiera sygnatury zagrożeń występujących w sieci globalnej. W razie potrzeby administrator może dodawać reguły własne lub modyfikować istniejące w celu dostosowania ich do specyfiki lokalnego ruchu.
+Dodatkowo Suricata korzysta z reguł detekcji pochodzących z zestawu \textbf{ET Open Rules}, które obejmują najczęstsze zagrożenia występujące globalnie. Dla zwiększenia efektywności ochrony  dodane zostały własne reguły zawarte w pliku \texttt{custom.rules}\cite{custom-rules-github}. Własne reguły pozwalają na dostosowanie systemu do specyficznych potrzeb lokalnego ruchu, zwiększają precyzję wykrywania zagrożeń oraz minimalizują fałszywe alarmy.
+
+Reguły zawarte w pliku \texttt{custom.rules} obejmują:
+
+\begin{itemize}
+\item \textbf{Wykrywanie skanowania portów za pomocą Nmap/Masscan (TCP)}: Detekcja szybkich skanów SYN, typowych dla narzędzi skanujących porty.
+\item \textbf{Wykrywanie skanowania portów UDP}: Monitorowanie podejrzanie intensywnego ruchu UDP, co wskazuje na możliwe skanowanie portów UDP.
+
+\item \textbf{Wykrywanie ataku ICMP Flood}: Detekcja dużej ilości pakietów ICMP typu „Echo Request”, wskazującej na potencjalny atak DDoS.
+
+\item \textbf{Wykrywanie spoofingu ARP (atak MITM)}: Reguła (wyłączona domyślnie) wykrywająca fałszywe pakiety ARP, które mogą być próbą ataku typu Man-in-the-Middle.
+
+\item \textbf{Wykrywanie prób brute-force SSH}: Monitorowanie prób wielokrotnych logowań do SSH, co sugeruje ataki typu brute-force na usługę SSH.
+
+\item \textbf{Wykrywanie tunelowania danych przez DNS}: Detekcja dużych pakietów UDP kierowanych do serwerów DNS, które mogą świadczyć o próbach eksfiltracji danych przez DNS.
+
+\item \textbf{Wykrywanie możliwej iniekcji SQL w żądaniach HTTP}: Monitorowanie żądań HTTP zawierających podejrzane ciągi takie jak „select” lub „union”, co sugeruje próbę ataku SQL Injection.
+
+\item \textbf{Wykrywanie prób wykorzystania exploitu EternalBlue (SMB)}: Detekcja specyficznych ciągów znaków używanych w atakach opartych na exploicie EternalBlue na usługi SMB.
+
+\item \textbf{Wykrywanie dużych pakietów ICMP (Ping of Death)}: Alarmowanie o niezwykle dużych pakietach ICMP, mogących świadczyć o ataku Ping of Death.
+
+\item \textbf{Wykrywanie fragmentowanych pakietów ICMP (ewazja lub atak PoD)}: Detekcja fragmentowanych pakietów ICMP, które mogą być próbą unikania zabezpieczeń lub atakiem Ping of Death.
+\end{itemize}
+
+Każda reguła jest szczegółowo skonfigurowana, co umożliwia precyzyjne wykrywanie zagrożeń i łatwe dostosowywanie systemu do bieżących potrzeb i specyfiki lokalnego ruchu sieciowego. Reguły wykorzystują charakterystyczne wzorce, które pomagają w szybkim identyfikowaniu incydentów bezpieczeństwa i podejmowaniu właściwych działań zapobiegawczych lub naprawczych. 
 
 Z punktu widzenia przepływu danych, Suricata analizuje pakiety pochodzące głównie z kontenera Squid Proxy oraz Pi-hole, umożliwiając wykrywanie m.in. prób połączeń do złośliwych domen, anomalii w żądaniach HTTP/S, czy też podejrzanych odpowiedzi DNS. Wykryte zdarzenia są logowane w formacie JSON i przekazywane do kontenera Filebeat, który odpowiada za przesyłanie ich do systemu logowania \textbf{Graylog}.
 
@@ -545,7 +597,7 @@ Przeglądarka została uruchomiona w izolowanej sieci Dockera o nazwie \texttt{f
     \item \textbf{Zdalny dostęp z autoryzacją} – dostęp do kontenera możliwy jest tylko z sieci lokalnej i po uprzednim zalogowaniu (np. przez hasło VNC).
 \end{itemize}
 
-Dodatkowo, kontener został odseparowany od usług infrastruktury bezpieczeństwa (takich jak Pi-hole, Graylog, Filebeat, itp.) i ma dostęp wyłącznie do Internetu poprzez proxy oraz do swojego lokalnego DNS. Taka konfiguracja zapobiega wykorzystaniu przeglądarki jako potencjalnego punktu wejścia do systemu i uniemożliwia skanowanie innych komponentów z poziomu przeglądarki.
+Dodatkowo, kontener został odseparowany od usług infrastruktury bezpieczeństwa (takich jak Pi-hole, Graylog, Filebeat, itp.) i ma dostęp wyłącznie do Internetu przy uzyciu swojego lokalnego DNS. Taka konfiguracja zapobiega wykorzystaniu przeglądarki jako potencjalnego punktu wejścia do systemu i uniemożliwia skanowanie innych komponentów z poziomu przeglądarki.
 
 Z punktu widzenia cyberbezpieczeństwa, rozwiązanie to realizuje zasadę tzw. \textit{sandboxingu} – uruchamiania aplikacji w środowisku kontrolowanym, z jasno zdefiniowanymi ograniczeniami. Dzięki temu możliwe jest:
 \begin{itemize}
@@ -563,9 +615,10 @@ Rozwiązanie to jest szczególnie przydatne w domowych środowiskach z dostępem
 
 \textbf{Portainer}\cite{portainer-docs} to lekkie, webowe narzędzie służące do zarządzania kontenerami Docker, obrazami, sieciami oraz wolumenami. W prezentowanym systemie bezpieczeństwa Portainer został wdrożony jako element wspierający administrację i monitorowanie infrastruktury kontenerowej, zbudowanej na platformie Raspberry Pi 5.
 
-Portainer został uruchomiony jako osobny kontener Docker z dostępem do lokalnego demona Dockera poprzez gniazdo \texttt{/var/run/docker.sock}. Interfejs administracyjny udostępniany jest na porcie \textbf{9443} z wykorzystaniem HTTPS i zabezpieczony silnym hasłem oraz uwierzytelnianiem lokalnym. Dostęp do panelu możliwy jest wyłącznie z sieci lokalnej, dzięki regułom zapory ogniowej (UFW) oraz konfiguracji sieci Dockera.
+Portainer został uruchomiony jako osobny kontener Docker z dostępem do lokalnego demona Dockera poprzez gniazdo \texttt{/var/run/docker.sock}. Dostęp do panelu możliwy jest wyłącznie z sieci lokalnej, dzięki regułom zapory ogniowej (UFW) oraz konfiguracji sieci Dockera.
 
-Portainer w omawianym środowisku pełni następujące funkcje:
+
+Portainer~\ref{fig:portainer-containers} w omawianym środowisku pełni następujące funkcje:
 \begin{itemize}
     \item \textbf{Podgląd statusu kontenerów} – możliwość szybkiego sprawdzenia, które usługi działają, ich zużycie zasobów oraz czas działania,
     \item \textbf{Zarządzanie cyklem życia kontenerów} – uruchamianie, zatrzymywanie, restartowanie i usuwanie usług z poziomu interfejsu graficznego,
@@ -574,6 +627,13 @@ Portainer w omawianym środowisku pełni następujące funkcje:
     \item \textbf{Zdalna inspekcja kontenerów} – dostęp do logów kontenerów, statystyk, zmiennych środowiskowych oraz terminala w czasie rzeczywistym,
     \item \textbf{Uprawnienia i role} – możliwość tworzenia użytkowników i nadawania im ograniczonych uprawnień administracyjnych.
 \end{itemize}
+\newpage 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{img/portainer_list.png}
+    \caption{Lista kontenerów Docker w środowisku zarządzanym przez Portainera. Widoczne są wszystkie komponenty systemu „Home Network Guardian” – m.in. Pi-hole, Suricata, Graylog, Squid Proxy i Portainer.}
+    \label{fig:portainer-containers}
+\end{figure}
 
 Portainer znacząco ułatwia utrzymanie systemu, pozwalając na:
 \begin{itemize}
@@ -723,7 +783,7 @@ Z kolei \textbf{MongoDB} pełni funkcję bazy metadanych i konfiguracji. W syste
     \item obsługi ustawień wejść (inputs), reguł przetwarzania logów oraz harmonogramów rotacji indeksów.
 \end{itemize}
 
-MongoDB nie przechowuje danych logów w rozumieniu treści zdarzeń, ale zarządza całą „logiką aplikacyjną” Grayloga. Działa w osobnym kontenerze i komunikuje się z Graylogiem wewnątrz wirtualnej sieci Docker, co eliminuje ryzyko nieautoryzowanego dostępu z zewnątrz.
+MongoDB nie przechowuje danych logów w rozumieniu treści zdarzeń, ale zarządza całą „logiką aplikacyjną” Grayloga. Działa w osobnym kontenerze i komunikuje się z Graylogiem na poziomie hosta.
 
 \textbf{Podsumowanie ról komponentów:}
 \begin{itemize}
@@ -742,7 +802,7 @@ Prometheus został uruchomiony jako kontener Docker, skonfigurowany do cykliczne
 
 Prometheus działa na zasadzie tzw. \textit{pull model} – samodzielnie pobiera dane z wcześniej skonfigurowanych targetów co określony interwał czasowy (np. co 15 sekund). Dodatkowo pozwala na definiowanie alertów warunkowych (Alertmanager), które mogą np. wysyłać powiadomienie, jeśli zużycie dysku przekroczy określony próg.
 
-Dane zbierane przez Prometheusa są przechowywane lokalnie w jego wbudowanej bazie danych TSDB i udostępniane przez API w formacie zapytań PromQL. To umożliwia ich dalsze wykorzystanie przez narzędzia wizualizacyjne takie jak Grafana.
+Dane zbierane przez Prometheusa są przechowywane lokalnie w jego wbudowanej bazie danych TSDB\cite{prometheus_storage} i udostępniane przez API w formacie zapytań PromQL\cite{prometheus_querying}. To umożliwia ich dalsze wykorzystanie przez narzędzia wizualizacyjne takie jak Grafana.
 
 Prometheus zapewnia:
 \begin{itemize}
@@ -787,7 +847,7 @@ Jednym z głównych celów wdrożenia systemu było ograniczenie dostępu do nie
 
 \textbf{Filtracja DNS} realizowana przez Pi-hole pozwoliła na natychmiastowe odrzucanie zapytań do znanych domen reklamowych, telemetrycznych, phishingowych i złośliwych. Kluczowym elementem skuteczności Pi-hole’a jest jakość i zakres wykorzystywanych list blokujących. W ramach wdrożenia zaimportowano m.in.:
 \begin{itemize}
-    \item \textbf{Listę CERT Polska}, zawierającą domeny wykorzystywane do ataków phishingowych – źródło: \url{https://hole.cert.pl/domains/domains.txt},
+    \item \textbf{Listę CERT Polska}\cite{cert_pl}, zawierającą domeny wykorzystywane do ataków phishingowych – źródło: \url{https://hole.cert.pl/domains/domains.txt},
     \item \textbf{Listy Suspicious z Firebog}, m.in.:
     \begin{itemize}
         \item PolishFiltersTeam KADhosts,
@@ -830,7 +890,7 @@ W efekcie, system Pi-hole blokował średnio od 15\% do 30\% wszystkich zapytań
 
 Wszystkie działania blokujące są raportowane w systemie logowania Graylog, co umożliwia ich dalszą analizę, korelację z innymi zdarzeniami oraz wizualizację w czasie rzeczywistym w Grafanie. Efektywność rozwiązania potwierdzają zarówno dane statystyczne, jak i testy ręczne – użytkownik końcowy otrzymuje środowisko bardziej prywatne, szybsze i bezpieczne.
 
-\subsection{Wykryte zdarzenia i incydenty (Suricata + Graylog)}
+\subsection{Wykryte zdarzenia i incydenty w Graylog}
 
 System detekcji zagrożeń \textbf{Suricata}, działający w trybie pasywnym, został zintegrowany z centralnym systemem logowania \textbf{Graylog}, co umożliwia szczegółową analizę ruchu sieciowego w czasie rzeczywistym oraz archiwizację danych o zdarzeniach bezpieczeństwa.
 
@@ -845,9 +905,56 @@ W analizowanym przedziale czasowym zarejestrowano ponad 7300 zdarzeń, z czego i
     \item \textbf{fileinfo}, \textbf{dhcp}, \textbf{anomaly} – pozostałe typy danych.
 \end{itemize}
 
-Warto zaznaczyć, że \textbf{alerty bezpieczeństwa} dotyczyły głównie prób skanowania portów i wykrytych aktywności narzędzi takich jak \texttt{nmap}. Suricata automatycznie wygenerowała alerty typu \textit{Possible Nmap or masscan scan detected}, klasyfikując je jako działania o poziomie zagrożenia \texttt{severity:3} (średnie zagrożenie). W logach widoczne są również alerty związane z ruchem na porty typowe dla usług DNS (53/UDP), HTTP (80/TCP), HTTPS (443/TCP) oraz niestandardowe porty wykorzystywane przez narzędzia do rekonesansu.
+W środowisku testowym wykryto również alerty typu \textbf{Possible Nmap or masscan scan detected}, które Suricata klasyfikuje jako działania o poziomie zagrożenia \texttt{severity:3} (średnie). W jednym z przypadków ruch dotyczył połączenia na port \texttt{3128/TCP}, standardowo wykorzystywany przez serwery \texttt{Squid Proxy}.
 
-textbf{Suricata IDS}~\ref{fig:graylog-suricata-dashboard}, \textbf{Squid Proxy}~\ref{fig:graylog-squid-logs}, \textbf{Pihole}~\ref{fig:graylog-dns-blocks}
+\textbf{Przykładowy alert Suricaty} poniżej przedstawia próbę inicjacji połączenia TCP z adresu \texttt{192.168.1.12} (klient w sieci lokalnej) w kierunku hosta \texttt{192.168.1.5} (serwer proxy) – bez odpowiedzi zwrotnej. Pojedynczy pakiet TCP typu SYN w takim kontekście interpretowany jest jako potencjalna próba rekonesansu (skanowanie portów).
+
+\begin{lstlisting}[language=json, caption={Alert Suricaty typu \texttt{Possible Nmap or masscan scan detected} na porcie \texttt{3128/TCP}}, label={lst:suricata-proxy-alert}]
+{
+"timestamp": "2025-06-14T16:02:34.376565+0000",
+"flow_id": 772912701487983,
+"in_iface": "eth0",
+"event_type": "alert",
+"src_ip": "192.168.1.12",
+"src_port": 54660,
+"dest_ip": "192.168.1.5",
+"dest_port": 3128,
+"proto": "TCP",
+"pkt_src": "wire/pcap",
+"alert": {
+"action": "allowed",
+"gid": 1,
+"signature_id": 1000001,
+"rev": 1,
+"signature": "Possible Nmap or masscan scan detected",
+"category": "",
+"severity": 3
+},
+"direction": "to_server",
+"flow": {
+"pkts_toserver": 1,
+"pkts_toclient": 0,
+"bytes_toserver": 74,
+"bytes_toclient": 0,
+"start": "2025-06-14T16:02:34.376565+0000",
+"src_ip": "192.168.1.12",
+"dest_ip": "192.168.1.5",
+"src_port": 54660,
+"dest_port": 3128
+}
+}
+\end{lstlisting}
+
+Alert ten został wygenerowany w wyniku wykrycia pojedynczego pakietu TCP wysłanego na port serwera proxy. W analizowanym przypadku nie wystąpiła żadna odpowiedź zwrotna od serwera (brak pakietu ACK lub RST), co typowe jest dla prób wykrywania otwartych portów za pomocą narzędzi takich jak \texttt{nmap} czy \texttt{masscan}. W praktyce może to oznaczać:
+\begin{itemize}
+\item próbę zmapowania otwartych usług przez urządzenie lokalne (192.168.1.12),
+\item działanie skryptu diagnostycznego lub złośliwego oprogramowania,
+\item niewłaściwe skonfigurowanie aplikacji testującej łączność z serwerem proxy.
+\end{itemize}
+
+Takie zdarzenia są cenne z punktu widzenia \textbf{wczesnego wykrywania zagrożeń}, ponieważ pozwalają na identyfikację potencjalnych agresorów wewnątrz sieci lokalnej oraz testy penetracyjne prowadzone bez autoryzacji. Suricata, działając w trybie pasywnym, skutecznie klasyfikuje tego typu aktywność dzięki własnym regułom detekcji i integracji z narzędziem SIEM (Graylog), umożliwiając szybką analizę i reakcję zespołu bezpieczeństwa.
+
+\textbf{Suricata IDS}~\ref{fig:graylog-suricata-dashboard}, \textbf{Squid Proxy}~\ref{fig:graylog-squid-logs}, \textbf{Pihole}~\ref{fig:graylog-dns-blocks}
 
 \newpage
 \begin{figure}[H]
@@ -861,9 +968,10 @@ textbf{Suricata IDS}~\ref{fig:graylog-suricata-dashboard}, \textbf{Squid Proxy}~
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{img/graylog_proxy.png}
-    \caption{Dashboard \textit{Squid Proxy Logs} w Graylog przedstawiający analizę zdarzeń pochodzących z logów serwera proxy Squid. Po lewej stronie znajduje się tabela agregująca liczbę zdarzeń według typu — największą część stanowią zdarzenia typu \texttt{access} (86{,}7\%), a pozostałe to \texttt{connection\_s} i \texttt{fileinfo}. Po prawej stronie widoczny jest wykres kołowy, ilustrujący udział poszczególnych typów w całości. Dolna część przedstawia szczegóły jednego ze zdarzeń typu \texttt{access}, zawierające informacje o źródłowym adresie IP klienta.}
+    \caption{Dashboard \textit{Squid Proxy Analysis} w Graylog przedstawiający analizę logów serwera proxy Squid, z uwzględnieniem reguł ACL. Po lewej stronie znajduje się tabela agregująca liczbę zapytań HTTP z rozróżnieniem na te, które pasują do listy blokującej \texttt{blocklist\_stevenblack} (47{,}4\%) oraz pozostałe oznaczone jako \texttt{no\_acl} (52{,}5\%). Po prawej stronie umieszczono wykres słupkowy przedstawiający tę samą zależność w formie graficznej.}
     \label{fig:graylog-squid-logs}
 \end{figure}
+
 
 \newpage
 \begin{figure}[H]
@@ -874,29 +982,12 @@ textbf{Suricata IDS}~\ref{fig:graylog-suricata-dashboard}, \textbf{Squid Proxy}~
 \end{figure}
 
 
-Oto przykładowe informacje wyodrębnione z alertów:
-\begin{itemize}
-    \item adres źródłowy: \texttt{192.168.1.5},
-    \item adres docelowy: \texttt{192.168.1.44},
-    \item typ protokołu: \texttt{TCP} lub \texttt{UDP},
-    \item interfejs: \texttt{eth0},
-    \item narzędzie źródłowe: \texttt{nmap/masscan},
-    \item identyfikator reguły: \texttt{sid:1000001}.
-\end{itemize}
-
 Wszystkie alerty są gromadzone i wizualizowane na dashboardzie Grayloga w czasie rzeczywistym, co umożliwia:
 \begin{itemize}
     \item szybkie wykrywanie prób skanowania i rekonesansu w sieci lokalnej,
     \item korelację zdarzeń z ruchem HTTP i DNS (np. zapytania do złośliwych domen),
     \item analizę częstości i kierunku ataków w celu wyciągania wniosków o zagrożeniach.
 \end{itemize}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{graylog.png}
-    \caption{Dashboard Grayloga prezentujący zdarzenia wykryte przez Suricatę z podziałem na typy eventów i przykładowe alerty bezpieczeństwa}
-    \label{fig:graylog-suricata-dashboard}
-\end{figure}
 
 Połączenie Suricaty i Grayloga stanowi skuteczny fundament systemu detekcji zagrożeń w sieci lokalnej. Pozwala na szybką identyfikację potencjalnych incydentów oraz ułatwia dalszą analizę w kontekście ruchu sieciowego, co w środowisku domowym lub edukacyjnym znacząco zwiększa poziom kontroli i widoczności zagrożeń.
 
