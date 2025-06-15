@@ -404,8 +404,6 @@ Lista blokowanych domen oparta jest o popularne źródła publiczne, takie jak \
     \label{fig:pihole-listy}
 \end{figure}
 
-Dodatkowo skonfigurowano opcję logowania DNS w formacie syslog, co umożliwia przesyłanie logów do narzędzia \textbf{Filebeat}, a następnie do systemu analitycznego \textbf{Graylog}. Dzięki temu możliwe jest korelowanie zapytań DNS z innymi zdarzeniami w sieci oraz budowa dashboardów z wizualizacją aktywności DNS.
-
 Z perspektywy bezpieczeństwa, Pi-hole pozwala na:
 \begin{itemize}
     \item blokowanie phishingu i złośliwych domen,
@@ -708,7 +706,7 @@ Konfiguracja obejmuje cztery źródła danych:
 \begin{itemize}
     \item \textbf{Suricata} – logi zdarzeń IDS w formacie JSON (eve.json), zawierające informacje o alertach, pakietach i protokołach sieciowych,
     \item \textbf{Squid Proxy} – logi dostępu HTTP/S z informacjami o źródłach zapytań, odpowiedziach serwera, metodach i czasach odpowiedzi,
-    \item \textbf{Pi-hole} – logi DNS informujące o zapytaniach i blokowanych domenach (wymaga odpowiedniego ustawienia lokalizacji pliku logów w systemie hosta),
+    \item \textbf{Pi-hole} – logi DNS informujące o zapytaniach i blokowanych domenach ,
     \item \textbf{Monitorowanie zasobów dysku} – dane systemowe z lokalnego skryptu, zapisywane jako logi JSON.
 \end{itemize}
 
@@ -732,7 +730,7 @@ Filebeat działa w trybie pasywnym, bez ingerencji w logikę działania źródł
 
 \subsection{Graylog – analiza i korelacja zdarzeń}
 
-\textbf{Graylog}\cite{graylog-docs} to zaawansowana platforma do zbierania, przeszukiwania, korelowania oraz wizualizacji logów systemowych i sieciowych. W prezentowanej architekturze pełni kluczową rolę w centralizacji danych generowanych przez komponenty bezpieczeństwa, takie jak \textbf{Suricata IDS}, \textbf{Squid Proxy}, \textbf{Pihole} a także agent przesyłający logi – \textbf{Filebeat}.
+\textbf{Graylog}\cite{graylog-docs} to zaawansowana platforma do zbierania, przeszukiwania, korelowania oraz wizualizacji logów systemowych i sieciowych. W prezentowanej architekturze pełni kluczową rolę w centralizacji danych generowanych przez komponenty bezpieczeństwa, takie jak \textbf{Suricata IDS}, \textbf{Squid Proxy} a także agent przesyłający logi – \textbf{Filebeat}.
 
 Graylog został uruchomiony jako kontener Docker, działający równolegle z usługami \textbf{MongoDB} (odpowiedzialna za przechowywanie konfiguracji i dashboardów) oraz \textbf{Elasticsearch} (indeksujący dane i umożliwiający szybkie przeszukiwanie logów). Wszystkie komponenty zostały umieszczone w wydzielonej sieci Docker z ograniczonym dostępem z zewnątrz.
 
@@ -758,13 +756,13 @@ W systemie utworzono szereg \textbf{strumieni} (\textit{streams}), które automa
     \item możliwość pełnego audytu operacji administracyjnych i dostępu do logów.
 \end{itemize}
 
-W opisywanej architekturze Graylog nie tylko pełni funkcję centralnego repozytorium logów, ale także stanowi fundament wczesnego ostrzegania i detekcji zagrożeń. Dzięki integracji z Suricatą, Squidem i Pi-hole, administrator ma pełną widoczność sieci domowej, a jednocześnie może szybko reagować na anomalie i potencjalne incydenty bezpieczeństwa.
+W opisywanej architekturze Graylog nie tylko pełni funkcję centralnego repozytorium logów, ale także stanowi fundament wczesnego ostrzegania i detekcji zagrożeń. Dzięki integracji z Suricatą, Squidem, administrator ma pełną widoczność sieci domowej, a jednocześnie może szybko reagować na anomalie i potencjalne incydenty bezpieczeństwa.
 
 \subsection{Elasticsearch i MongoDB – wsparcie dla Grayloga}
 
 W ramach wdrożenia systemu logowania Graylog, dwa komponenty pełnią fundamentalne role pomocnicze: \textbf{Elasticsearch} oraz \textbf{MongoDB}. Choć nie są one bezpośrednio widoczne dla użytkownika końcowego, ich obecność jest niezbędna do prawidłowego działania całej platformy analitycznej.
 
-\textbf{Elasticsearch} to rozproszony silnik wyszukiwania i indeksowania danych, oparty na Apache Lucene. W architekturze Grayloga odpowiada za przechowywanie oraz szybkie przeszukiwanie logów otrzymywanych z różnych źródeł (np. Suricata, Squid, Pi-hole). Dzięki strukturze indeksów, Elasticsearch umożliwia natychmiastowy dostęp do milionów wpisów w czasie rzeczywistym, z zastosowaniem zaawansowanych filtrów, pełnotekstowego wyszukiwania oraz analiz statystycznych.
+\textbf{Elasticsearch} to rozproszony silnik wyszukiwania i indeksowania danych, oparty na Apache Lucene. W architekturze Grayloga odpowiada za przechowywanie oraz szybkie przeszukiwanie logów otrzymywanych z różnych źródeł (np. Suricata, Squid). Dzięki strukturze indeksów, Elasticsearch umożliwia natychmiastowy dostęp do milionów wpisów w czasie rzeczywistym, z zastosowaniem zaawansowanych filtrów, pełnotekstowego wyszukiwania oraz analiz statystycznych.
 
 \textbf{Funkcje Elasticsearch w systemie Graylog:}
 \begin{itemize}
@@ -890,28 +888,36 @@ W efekcie, system Pi-hole blokował średnio od 15\% do 30\% wszystkich zapytań
 
 Wszystkie działania blokujące są raportowane w systemie logowania Graylog, co umożliwia ich dalszą analizę, korelację z innymi zdarzeniami oraz wizualizację w czasie rzeczywistym w Grafanie. Efektywność rozwiązania potwierdzają zarówno dane statystyczne, jak i testy ręczne – użytkownik końcowy otrzymuje środowisko bardziej prywatne, szybsze i bezpieczne.
 
+\newpage
 \subsection{Wykryte zdarzenia i incydenty w Graylog}
 
-System detekcji zagrożeń \textbf{Suricata}, działający w trybie pasywnym, został zintegrowany z centralnym systemem logowania \textbf{Graylog}, co umożliwia szczegółową analizę ruchu sieciowego w czasie rzeczywistym oraz archiwizację danych o zdarzeniach bezpieczeństwa.
+System \textbf{Graylog} odegrał kluczową rolę w wykrywaniu i analizie incydentów bezpieczeństwa w środowisku kontenerowym. Dzięki integracji z systemem detekcji \textbf{Suricata} oraz serwerem \textbf{Squid Proxy}, możliwe było centralne zbieranie i korelowanie logów z różnych warstw komunikacji sieciowej.
 
-Na rysunku~\ref{fig:graylog-suricata-dashboard} przedstawiono przykładowy widok dashboardu Grayloga, zbudowanego na podstawie logów generowanych przez Suricatę. Dane zostały odpowiednio przetworzone i przesłane do Grayloga za pomocą agenta Filebeat, a następnie zindeksowane i pogrupowane według typu zdarzenia (\texttt{event\_type}).
-
-W analizowanym przedziale czasowym zarejestrowano ponad 7300 zdarzeń, z czego istotną część (ponad 2200) stanowiły alerty o potencjalnych incydentach bezpieczeństwa. Najczęściej występujące typy zdarzeń to:
+W panelu Grayloga rejestrowane były m.in. zdarzenia typu:
 \begin{itemize}
-    \item \textbf{stats} – statystyki ruchu (30,2\%),
-    \item \textbf{tls} – wykryta aktywność szyfrowana (29,1\%),
-    \item \textbf{http} – zapytania i odpowiedzi HTTP (28,1\%),
-    \item \textbf{alert} – podejrzane działania (9,2\%),
-    \item \textbf{fileinfo}, \textbf{dhcp}, \textbf{anomaly} – pozostałe typy danych.
+\item alerty o próbach skanowania portów,
+\item nietypowe zapytania DNS wskazujące na możliwe wycieki,
+\item ruch HTTP mogący sugerować próbę obejścia filtrów treści.
 \end{itemize}
 
+Dzięki odpowiednio skonfigurowanym filtrom i dashboardom możliwe było szybkie wyodrębnienie zdarzeń o podwyższonym ryzyku oraz identyfikacja ich źródła. Na rysunku~\ref{fig:graylog-suricata-dashboard} zaprezentowano przykładowy widok panelu analitycznego Grayloga, ilustrujący wykryte zdarzenia w czasie rzeczywistym.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{img/graylog_alerts.png}
+    \caption{Panel \textit{Suricata Traffic Analysis} w Graylog prezentujący statystyki zdarzeń wykrywanych przez system IDS Suricata. Po lewej stronie pokazano zestawienie typów zdarzeń (\texttt{event\_type}) z ich liczebnością i udziałem procentowym – dominują protokoły TLS  i HTTP. W centrum widoczny jest wykres kołowy, a poniżej szczegóły przykładowego alertu o wykryciu skanowania portów UDP z podpisem „Possible UDP scan detected”. Widoczna jest także oryginalna wiadomość JSON z logu oraz jej rozparsowane metadane.}
+    \label{fig:graylog-suricata-dashboard}
+\end{figure}
+
+
+% \newpage
+\subsubsection{Suricata - alerty}
 W środowisku testowym wykryto również alerty typu \textbf{Possible Nmap or masscan scan detected}, które Suricata klasyfikuje jako działania o poziomie zagrożenia \texttt{severity:3} (średnie). W jednym z przypadków ruch dotyczył połączenia na port \texttt{3128/TCP}, standardowo wykorzystywany przez serwery \texttt{Squid Proxy}.
 
 \textbf{Przykładowy alert Suricaty} poniżej przedstawia próbę inicjacji połączenia TCP z adresu \texttt{192.168.1.12} (klient w sieci lokalnej) w kierunku hosta \texttt{192.168.1.5} (serwer proxy) – bez odpowiedzi zwrotnej. Pojedynczy pakiet TCP typu SYN w takim kontekście interpretowany jest jako potencjalna próba rekonesansu (skanowanie portów).
 
 \begin{lstlisting}[language=json, caption={Alert Suricaty typu \texttt{Possible Nmap or masscan scan detected} na porcie \texttt{3128/TCP}}, label={lst:suricata-proxy-alert}]
-{
-"timestamp": "2025-06-14T16:02:34.376565+0000",
+{"timestamp": "2025-06-14T16:02:34.376565+0000",
 "flow_id": 772912701487983,
 "in_iface": "eth0",
 "event_type": "alert",
@@ -932,17 +938,13 @@ W środowisku testowym wykryto również alerty typu \textbf{Possible Nmap or ma
 },
 "direction": "to_server",
 "flow": {
-"pkts_toserver": 1,
-"pkts_toclient": 0,
 "bytes_toserver": 74,
 "bytes_toclient": 0,
 "start": "2025-06-14T16:02:34.376565+0000",
 "src_ip": "192.168.1.12",
 "dest_ip": "192.168.1.5",
 "src_port": 54660,
-"dest_port": 3128
-}
-}
+"dest_port": 3128}}
 \end{lstlisting}
 
 Alert ten został wygenerowany w wyniku wykrycia pojedynczego pakietu TCP wysłanego na port serwera proxy. W analizowanym przypadku nie wystąpiła żadna odpowiedź zwrotna od serwera (brak pakietu ACK lub RST), co typowe jest dla prób wykrywania otwartych portów za pomocą narzędzi takich jak \texttt{nmap} czy \texttt{masscan}. W praktyce może to oznaczać:
@@ -954,42 +956,96 @@ Alert ten został wygenerowany w wyniku wykrycia pojedynczego pakietu TCP wysła
 
 Takie zdarzenia są cenne z punktu widzenia \textbf{wczesnego wykrywania zagrożeń}, ponieważ pozwalają na identyfikację potencjalnych agresorów wewnątrz sieci lokalnej oraz testy penetracyjne prowadzone bez autoryzacji. Suricata, działając w trybie pasywnym, skutecznie klasyfikuje tego typu aktywność dzięki własnym regułom detekcji i integracji z narzędziem SIEM (Graylog), umożliwiając szybką analizę i reakcję zespołu bezpieczeństwa.
 
-\textbf{Suricata IDS}~\ref{fig:graylog-suricata-dashboard}, \textbf{Squid Proxy}~\ref{fig:graylog-squid-logs}, \textbf{Pihole}~\ref{fig:graylog-dns-blocks}
+% \textbf{Suricata IDS}~\ref{fig:graylog-suricata-dashboard}, \textbf{Squid Proxy}~\ref{fig:graylog-squid-logs}, \textbf{Pihole}~\ref{fig:graylog-dns-blocks}
 
-\newpage
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{img/graylog_alerts.png}
-    \caption{Panel \textit{Suricata Traffic Analysis} w Graylog prezentujący statystyki zdarzeń wykrywanych przez system IDS Suricata. Po lewej stronie pokazano zestawienie typów zdarzeń (\texttt{event\_type}) z ich liczebnością i udziałem procentowym – dominują protokoły TLS (40,2\%) i HTTP (27,2\%). W centrum widoczny jest wykres kołowy, a poniżej szczegóły przykładowego alertu o wykryciu skanowania portów UDP z podpisem „Possible UDP scan detected”. Widoczna jest także oryginalna wiadomość JSON z logu oraz jej rozparsowane metadane.}
-    \label{fig:graylog-suricata-dashboard}
-\end{figure}
+\subsubsection{Suricata - alert typu anomaly}
+
+W środowisku monitorowanym przez Suricatę odnotowano zdarzenie typu \textbf{anomalia aplikacyjna}, sklasyfikowane jako \texttt{UNABLE\_TO\_MATCH\_RESPONSE\_TO\_REQUEST}. Tego typu zdarzenia rejestrowane są przez warstwę analizy protokołu aplikacyjnego (ang. \textit{App Layer}) i wskazują na niespójność pomiędzy zapytaniem HTTP a odpowiedzią.
+
+\textbf{Przykładowy wpis JSON Suricaty:}
+\begin{lstlisting}[language=json, caption={Alert typu anomaly: UNABLE\_TO\_MATCH\_RESPONSE\_TO\_REQUEST}, label={lst:suricata-anomaly-mismatch}]
+{
+  "timestamp": "2025-06-15T13:47:41.003897+0000",
+  "flow_id": 1028677852814211,
+  "in_iface": "eth0",
+  "event_type": "anomaly",
+  "src_ip": "192.168.1.48",
+  "src_port": 50292,
+  "dest_ip": "192.168.1.5",
+  "dest_port": 3129,
+  "proto": "TCP",
+  "pkt_src": "wire/pcap",
+  "tx_id": 508,
+  "anomaly": {
+    "app_proto": "http",
+    "type": "applayer",
+    "event": "UNABLE_TO_MATCH_RESPONSE_TO_REQUEST",
+    "layer": "proto_parser"
+  }
+}
+\end{lstlisting}
+
+\textbf{Znaczenie alertu:}
+Ten typ anomalii oznacza, że Suricata – analizując ruch HTTP – nie była w stanie poprawnie dopasować odpowiedzi serwera HTTP do wcześniejszego zapytania klienta. Może to wynikać z:
+\begin{itemize}
+  \item błędów implementacji lub niestandardowych nagłówków HTTP (np. w aplikacjach webowych typu REST API),
+  \item braku odpowiedzi (serwer nie udzielił żadnej odpowiedzi na zapytanie),
+  \item modyfikacji transmisji przez pośredniczące urządzenie (np. proxy, IDS, firewall),
+  \item przesyłania binarnego payloadu niezgodnego z oczekiwanym schematem HTTP (co może być próbą ataku typu obfuscation).
+\end{itemize}
+
+W analizowanym przypadku klient o adresie \texttt{192.168.1.48} próbował połączyć się z serwerem proxy \texttt{192.168.1.5} na porcie \texttt{3129}, który nie jest standardowym portem HTTP (\texttt{80} lub \texttt{8080}), co może świadczyć o niestandardowej konfiguracji lub użyciu niestandardowej aplikacji HTTP. Zdarzenie to zostało przechwycone w czasie rzeczywistym z interfejsu \texttt{eth0}, a identyfikator transakcji HTTP (tx\_id) wynosił \texttt{508}.
+
+Zdarzenia typu \texttt{anomaly} nie są jednoznacznie klasyfikowane jako ataki, ale mogą wskazywać na błędy aplikacyjne lub aktywność sondującą – dlatego powinny być traktowane jako \textbf{wczesny sygnał ostrzegawczy}.
+
+\subsubsection{Squid proxy - Wykryte zdarzenia w logach}
+
+W ramach monitorowania ruchu wychodzącego w sieci lokalnej wykorzystano serwer \textbf{Squid Proxy}, który pełnił funkcję filtra HTTP/HTTPS, szczególnie zorientowanego na ochronę dostępu do treści internetowych przez dzieci. Konfiguracja Squida uwzględniała reguły \textbf{ACL} (\textit{Access Control List}), z których główną była lista blokująca \cite{stevenblack-blocklist}. Lista ta zawiera zestaw domen związanych z reklamami, trackerami oraz stronami nieodpowiednimi dla młodszych użytkowników.
+
+Każde żądanie przekazywane przez proxy było rejestrowane w formacie JSON i analizowane w systemie \textbf{Graylog}. Na rysunku~\ref{fig:graylog-squid-logs} przedstawiono przykładowy dashboard \textit{Squid Proxy Analysis}, pokazujący statystyki zapytań HTTP, rozdzielone na te, które zostały zidentyfikowane jako pasujące do listy blokującej, oraz pozostałe. Jak wynika z danych, (47{,}4\%) żądań zostało sklasyfikowanych jako potencjalnie niepożądane i zablokowane, natomiast (52{,}5\%) zostało przepuszczone, ponieważ nie pasowały do żadnej z aktywnych reguł ACL.
 
 \newpage
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{img/graylog_proxy.png}
-    \caption{Dashboard \textit{Squid Proxy Analysis} w Graylog przedstawiający analizę logów serwera proxy Squid, z uwzględnieniem reguł ACL. Po lewej stronie znajduje się tabela agregująca liczbę zapytań HTTP z rozróżnieniem na te, które pasują do listy blokującej \texttt{blocklist\_stevenblack} (47{,}4\%) oraz pozostałe oznaczone jako \texttt{no\_acl} (52{,}5\%). Po prawej stronie umieszczono wykres słupkowy przedstawiający tę samą zależność w formie graficznej.}
+    \caption{Dashboard \textit{Squid Proxy Analysis} w Graylog przedstawiający analizę logów serwera proxy Squid, z uwzględnieniem reguł ACL. Po lewej stronie znajduje się tabela agregująca liczbę zapytań HTTP z rozróżnieniem na te, które pasują do listy blokującej \texttt{blocklist\_stevenblack} oraz pozostałe oznaczone jako \texttt{no\_acl}. Po prawej stronie umieszczono wykres słupkowy przedstawiający tę samą zależność w formie graficznej.}
     \label{fig:graylog-squid-logs}
 \end{figure}
 
+Przykład 1 — żądanie zablokowane (Facebook):
+\begin{lstlisting}[language=json, caption={Zablokowane żądanie HTTPS do Facebooka – dopasowane do reguły}, label={lst:squid-facebook-block}]
+{
+"timestamp": "2025-06-14T16:11:02.153Z",
+"client": "192.168.1.42",
+"method": "CONNECT",
+"url": "https://www.facebook.com/",
+"status": 403,
+"bytes": 0,
+"referer": "-",
+"user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+"blocked": "blocklist_stevenblack"
+}
+\end{lstlisting}
 
 \newpage
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{img/graylog_dns.png}
-    \caption{Dashboard \textit{Pi-hole DNS Logs} w Graylog prezentuje analizę zapytań DNS kierowanych do serwera Pi-hole. Po lewej stronie widoczna jest tabela przedstawiająca zestawienie domen, które były najczęściej blokowane – największy udział (77{,}88\%) posiada maskowana domena oznaczona jako \texttt{\%domain\%}. Wśród pozostałych znajdują się m.in. \texttt{sh31.corve...},  czy \texttt{ds.mgrmiliz...}. W prawej części umieszczono wykres kołowy ilustrujący procentowy udział zapytań według klasyfikacji typu. W dolnym panelu znajduje się szczegóły pojedynczego wpisu typu \texttt{blocked}, zawierającego dane o źródle, adresie IP klienta i identyfikatorze wiadomości. Widok ten pozwala analizować skuteczność blokowania złośliwego i niechcianego ruchu DNS.}
-    \label{fig:graylog-dns-blocks}
-\end{figure}
+Przykład 2 — żądanie dopuszczone (WP.pl):
+\begin{lstlisting}[language=json, caption={Dostępne żądanie do portalu informacyjnego \texttt{wp.pl} – brak dopasowania do ACL}, label={lst:squid-wp-noacl}]
+{
+"timestamp": "2025-06-14T16:12:45.901Z",
+"client": "192.168.1.42",
+"method": "CONNECT",
+"url": "https://www.wp.pl/",
+"status": 200,
+"bytes": 1728,
+"referer": "-",
+"user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+"blocked": "no_acl"
+}
+\end{lstlisting}
 
+Zastosowanie tej architektury umożliwia skuteczne egzekwowanie polityki bezpieczeństwa oraz monitorowanie zachowań użytkowników w czasie rzeczywistym. Dzięki centralnej wizualizacji w Graylogu możliwa jest szybka identyfikacja, które zasoby są blokowane, a które omijają filtrację.
 
-Wszystkie alerty są gromadzone i wizualizowane na dashboardzie Grayloga w czasie rzeczywistym, co umożliwia:
-\begin{itemize}
-    \item szybkie wykrywanie prób skanowania i rekonesansu w sieci lokalnej,
-    \item korelację zdarzeń z ruchem HTTP i DNS (np. zapytania do złośliwych domen),
-    \item analizę częstości i kierunku ataków w celu wyciągania wniosków o zagrożeniach.
-\end{itemize}
-
-Połączenie Suricaty i Grayloga stanowi skuteczny fundament systemu detekcji zagrożeń w sieci lokalnej. Pozwala na szybką identyfikację potencjalnych incydentów oraz ułatwia dalszą analizę w kontekście ruchu sieciowego, co w środowisku domowym lub edukacyjnym znacząco zwiększa poziom kontroli i widoczności zagrożeń.
+Warto podkreślić, że usługa proxy działa jako krytyczny komponent filtrujący — jej tymczasowe wyłączenie lub awaria skutkuje całkowitym zablokowaniem dostępu do internetu z poziomu stacji roboczych. Takie zachowanie jest celowe i zostało zastosowane w celu uniemożliwienia obchodzenia mechanizmów kontroli dostępu.
 
 \subsection{Wydajność systemu – metryki Prometheus i Grafana}
 
@@ -1000,13 +1056,13 @@ W ramach systemu uruchomiono kontener \texttt{node-exporter}, który udostępnia
 Na rysunku~\ref{fig:grafana} przedstawiono rzeczywiste metryki zebrane z urządzenia \texttt{home-network-guardian} (adres IP: \texttt{192.168.1.5}). Widoczne są m.in.:
 \begin{itemize}
     \item \textbf{Użycie CPU} – średnio na poziomie 17\%, co wskazuje na bardzo niskie obciążenie pomimo działania wielu usług kontenerowych,
-    \item \textbf{Zużycie pamięci RAM} – około 59–60\% z dostępnych 8 GB, głównie przez usługi Graylog, Elasticsearch i Suricata,
-    \item \textbf{Użycie SWAP} – praktycznie zerowe (0.2\%), co oznacza brak konieczności odwoływania się do pamięci wymiany,
+    \item \textbf{Zużycie pamięci RAM} – około 50–60\% z dostępnych 8 GB, głównie przez usługi Graylog, Elasticsearch i Suricata,
+    \item \textbf{Użycie SWAP} – praktycznie zerowe, co oznacza brak konieczności odwoływania się do pamięci wymiany,
     \item \textbf{Temperatura CPU i NVMe} – utrzymująca się na bezpiecznym poziomie 35–45\textdegree C, dzięki zastosowaniu obudowy Argon NEO 5 z pasywnym chłodzeniem,
-    \item \textbf{Zajętość dysku} – tylko 43\% partycji głównej \texttt{/} na nośniku NVMe SSD (Samsung 980 500 GB),
+    \item \textbf{Zajętość dysku} – na nośniku NVMe SSD (Samsung 980 500 GB),
     \item \textbf{Ruch I/O} – stabilny, bez gwałtownych wzrostów, świadczący o braku przeciążeń dysku.
 \end{itemize}
-\newpage
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{grafana.png}
@@ -1014,7 +1070,7 @@ Na rysunku~\ref{fig:grafana} przedstawiono rzeczywiste metryki zebrane z urządz
     \label{fig:grafana}
 \end{figure}
 
-Pomimo działania wielu kontenerów jednocześnie (m.in. Graylog, Elasticsearch, MongoDB, Pi-hole, Unbound, Suricata, Prometheus, Grafana, Squid Proxy), system utrzymuje wysoką responsywność i stabilność pracy. Nie zaobserwowano restartów usług ani problemów z nadmiernym zużyciem zasobów.
+Pomimo działania wielu kontenerów jednocześnie, system utrzymuje wysoką responsywność i stabilność pracy. Nie zaobserwowano restartów usług ani problemów z nadmiernym zużyciem zasobów.
 
 Wnioski płynące z obserwacji metryk:
 \begin{itemize}
@@ -1030,46 +1086,72 @@ Zgromadzone dane jednoznacznie wskazują, że wdrożony system bezpieczeństwa j
 
 \subsection{Ocena skuteczności rozwiązania}
 
-Przeprowadzone wdrożenie systemu bezpieczeństwa na bazie Raspberry Pi 5 oraz narzędzi open-source dowiodło, że możliwe jest skuteczne zabezpieczenie ruchu sieciowego w środowisku domowym przy zachowaniu niskich kosztów oraz wysokiej elastyczności systemu. Zastosowane rozwiązania charakteryzowały się dużą skutecznością w zakresie:
+Przeprowadzone wdrożenie systemu bezpieczeństwa na bazie Raspberry Pi 5 oraz narzędzi open-source dowiodło, że możliwe jest skuteczne zabezpieczenie ruchu sieciowego w środowisku domowym przy zachowaniu niskich kosztów oraz wysokiej elastyczności całego systemu. Projekt potwierdził, że nawet na platformie o ograniczonych zasobach sprzętowych można uruchomić rozwiązania klasy enterprise, zapewniające kompleksową ochronę i monitoring.
+
+Zastosowane narzędzia pozwoliły uzyskać wysoką skuteczność w kluczowych obszarach:
 \begin{itemize}
-    \item \textbf{blokowania niepożądanych połączeń} – dzięki Pi-hole oraz Squid Proxy udało się wyeliminować ponad 30\% zapytań DNS oraz dostępów HTTP do znanych domen reklamowych, telemetrycznych oraz phishingowych,
-    \item \textbf{detekcji zagrożeń} – Suricata wykryła kilkaset alertów związanych z próbami rekonesansu (np. skanowania portów), co zostało odzwierciedlone w Graylogu i dashboardach Grafany,
-    \item \textbf{monitorowania usług} – Prometheus i Grafana pozwoliły zidentyfikować obciążenia, temperatury, zużycie RAM i dysku w czasie rzeczywistym, co umożliwia szybką reakcję na potencjalne przeciążenia lub awarie.
+    \item \textbf{Blokowanie niepożądanych połączeń} – dzięki integracji Pi-hole (z Unbound) i Squid Proxy możliwe było odfiltrowanie ponad 30\% zapytań DNS oraz żądań HTTP/S kierowanych do domen reklamowych, telemetrycznych, phishingowych i znanych źródeł złośliwego oprogramowania. Filtracja działała zarówno w warstwie nazw domen, jak i zawartości żądań HTTP.
+    
+    \item \textbf{Detekcja zagrożeń i aktywności podejrzanej} – Suricata pełniąca rolę systemu IDS wykryła kilkaset incydentów związanych m.in. z próbami skanowania portów, podejrzanym ruchem wychodzącym czy nietypowym wykorzystaniem DNS. Informacje te były agregowane i wizualizowane w czasie rzeczywistym w systemie Graylog oraz dashboardach Grafany, co umożliwiło szybką reakcję i analizę.
+
+    \item \textbf{Monitoring wydajności i zasobów systemu} – Prometheus wraz z Grafaną zapewniły pełną obserwowalność stanu klastra kontenerów. Mierzono m.in. obciążenie CPU, temperatury SoC, zużycie pamięci RAM i przestrzeni dyskowej, a także dostępność usług i czas odpowiedzi. Dzięki temu możliwe było prewencyjne reagowanie na ewentualne przeciążenia czy awarie.
 \end{itemize}
 
-System okazał się stabilny, niezawodny i przystosowany do pracy w trybie ciągłym 24/7. Nie wystąpiły istotne spadki wydajności, restarty usług ani problemy z nadmiernym zużyciem zasobów. Łączna liczba uruchomionych kontenerów przekroczyła 10, a mimo to zużycie CPU rzadko przekraczało 20\%, a pamięć RAM oscylowała wokół 60–65\%.
+System działał stabilnie i bezawaryjnie w trybie ciągłym (24/7), co jest szczególnie istotne w kontekście domowego środowiska, w którym nie przewiduje się częstych restartów czy ręcznych interwencji. W ramach rozwiązania uruchomiono ponad 10 kontenerów, w tym m.in. ElasticSearch, MongoDB, Graylog, Prometheus, Grafana, Squid Proxy, Pi-hole, Unbound oraz dedykowane sieci Dockera. 
 
-Warto podkreślić również \textbf{transparentność działania systemu} – użytkownicy sieci domowej nie odczuwali żadnych zakłóceń w korzystaniu z Internetu, a strony internetowe ładowały się szybciej z powodu eliminacji zewnętrznych zasobów reklamowych.
+Pomimo tej rozbudowanej architektury, Raspberry Pi 5 utrzymywał obciążenie CPU poniżej 20\%, a zużycie pamięci RAM oscylowało wokół 60--65\%. Takie parametry wskazują na optymalne zrównoważenie wydajności i funkcjonalności w kontekście sprzętu klasy konsumenckiej.
+
+Na uwagę zasługuje również \textbf{transparentność działania systemu z perspektywy użytkownika końcowego}. Użytkownicy domowej sieci nie odczuwali żadnych opóźnień, spowolnień czy problemów z dostępem do Internetu. Wręcz przeciwnie – dzięki eliminacji zewnętrznych reklam, trackerów i zasobów telemetrycznych, ładowanie stron internetowych uległo przyspieszeniu, co przełożyło się na lepszy komfort korzystania z sieci.
+
+Całość rozwiązania wpisuje się w filozofię DevSecOps oraz Zero Trust – zakładającą aktywny monitoring, minimalizację zaufania i prewencję poprzez analizę oraz filtrację ruchu na wielu poziomach (DNS, proxy, IDS, logi).
 
 \subsection{Możliwości rozbudowy systemu}
 
 System został zaprojektowany modułowo i kontenerowo, co daje szerokie możliwości dalszej rozbudowy i adaptacji do rosnących potrzeb użytkownika. Wśród najbardziej obiecujących kierunków rozwoju można wskazać:
 \begin{itemize}
-    \item \textbf{Integrację z systemami klasy SIEM} takimi jak Wazuh, AlienVault OSSIM czy Security Onion – celem analizy korelacyjnej na większą skalę,
-    \item \textbf{Wprowadzenie mechanizmów EDR} i sandboxingu (np. z użyciem Falco, CrowdSec, Cuckoo Sandbox),
+    \item \textbf{Integrację z systemami klasy SIEM} takimi jak Wazuh\cite{wazuh_docs} – celem analizy korelacyjnej na większą skalę,
+    \item \textbf{Wprowadzenie mechanizmów EDR i sandboxingu}, np. z wykorzystaniem otwartoźródłowych narzędzi takich jak:
+\begin{itemize}
+  \item \textbf{Wazuh} – jako przykład lekkiego rozwiązania klasy EDR/HIDS, kompatybilnego z architekturą ARM64 i pozwalającego na zbieranie logów, detekcję zagrożeń oraz analizę integralności plików\cite{wazuh_agent}.
+  \item \textbf{Falco} – system do monitorowania zdarzeń w czasie rzeczywistym (sandboxing na poziomie kernela), oparty o eBPF, wykrywający anomalie w kontenerach i hostach linuksowych\cite{falco_docs}.
+\end{itemize},
     \item \textbf{Zarządzanie konfiguracją i deploymentem} za pomocą Ansible, Terraform lub Portainer Stacks,
     \item \textbf{Rozszerzenie filtracji treści dla dzieci} – integracja z OpenDNS lub SafeSearch API oraz rozbudowany harmonogram kontroli dostępu,
-    \item \textbf{Automatyczne backupy} logów i konfiguracji z wykorzystaniem Restic, Borg lub rsync na zewnętrzny NAS,
-    \item \textbf{Migracja na klaster Docker Swarm lub Kubernetes}, jeśli zajdzie potrzeba skalowania usług.
+    \item \textbf{Automatyczne backupy} logów i konfiguracji z wykorzystaniem zewnętrznego NAS
 \end{itemize}
 
-Dodatkowo, możliwe jest wdrożenie systemu honeypotów w celu rejestrowania prób ataku z zewnątrz oraz integracja z repozytorium threat intelligence (np. AbuseIPDB, MISP).
+Dodatkowo, możliwe jest wdrożenie systemu honeypotów\cite{honeypot_wiki} w celu rejestrowania prób ataku z zewnątrz oraz integracja z repozytorium threat intelligence (np. AbuseIPDB, MISP).
 
 \subsection{Wnioski końcowe}
 
-Zrealizowany projekt pokazał, że możliwe jest zbudowanie nowoczesnego, bezpiecznego i monitorowanego środowiska sieciowego przy użyciu otwartoźródłowych technologii i niskobudżetowego sprzętu. Konteneryzacja Docker pozwoliła na:
+Zrealizowany projekt pokazał, że możliwe jest zbudowanie nowoczesnego, bezpiecznego i w pełni monitorowanego środowiska sieciowego z wykorzystaniem otwartoźródłowych rozwiązań oraz sprzętu o niskim koszcie, jakim jest Raspberry Pi. Pomimo ograniczeń architektury ARM64, udało się uruchomić szereg zaawansowanych komponentów typowych dla infrastruktury klasy enterprise.
+
+Konteneryzacja przy pomocy Dockera odegrała kluczową rolę w realizacji tego przedsięwzięcia. Pozwoliła na:
 \begin{itemize}
-    \item logiczną separację usług,
-    \item uproszczenie procesu wdrażania i aktualizacji komponentów,
-    \item łatwe testowanie zmian i backup konfiguracji,
-    \item zwiększenie bezpieczeństwa dzięki odizolowaniu aplikacji w osobnych środowiskach.
+    \item logiczną separację usług w ramach izolowanych sieci i przestrzeni nazw,
+    \item uproszczone zarządzanie cyklem życia aplikacji (budowanie, wdrażanie, aktualizacje),
+    \item łatwe odtwarzanie środowiska dzięki zapisanym konfiguracjom \texttt{docker-compose},
+    \item zwiększenie bezpieczeństwa przez ograniczenie wzajemnego wpływu komponentów oraz lepsze zarządzanie portami i dostępem.
 \end{itemize}
 
-Dzięki integracji Pi-hole, Unbound, Squid Proxy, Suricaty, Filebeat, Grayloga, Prometheusa, Grafany oraz Portainera, powstał kompletny system pozwalający na pełną widoczność, kontrolę i analizę ruchu sieciowego.
+Zastosowanie Pi-hole oraz Unbound umożliwiło wdrożenie lokalnego, szyfrowanego DNS bez śledzenia zewnętrznego, a jednocześnie pozwoliło na pełną kontrolę nad zapytaniami sieciowymi. Dzięki Squid Proxy możliwe było wprowadzenie dodatkowego poziomu filtracji i nadzoru nad ruchem HTTP/S, szczególnie dla urządzeń należących do dzieci.
 
-Z punktu widzenia edukacyjnego, projekt umożliwia zapoznanie się z praktycznym działaniem systemów IDS, proxy, filtrów DNS oraz centralnych systemów logowania. Stanowi doskonałą bazę do nauki zagadnień DevSecOps, bezpieczeństwa systemów, konteneryzacji oraz analizy zdarzeń sieciowych.
+Integracja Suricaty, Filebeat i Grayloga pozwoliła na wprowadzenie detekcji zagrożeń oraz centralnego logowania i przeszukiwania zdarzeń w czasie rzeczywistym. Z kolei Prometheus i Grafana umożliwiły ciągły monitoring kondycji systemu, zapewniając wizualizację kluczowych metryk.
 
-Wdrożone rozwiązanie może być łatwo przeniesione na serwery x86 lub do środowisk chmurowych, co czyni je skalowalnym i uniwersalnym. Stanowi również przykład dobrych praktyk cyberbezpieczeństwa możliwych do zastosowania nie tylko w środowisku domowym, ale i małych firmach lub organizacjach edukacyjnych.
+Dzięki Portainerowi zarządzanie kontenerami stało się intuicyjne i dostępne z poziomu interfejsu graficznego. Z kolei instalacja lokalnego firewalla i przemyślana architektura sieci Dockera pozwoliły ograniczyć ekspozycję usług na zewnątrz.
+
+Z punktu widzenia edukacyjnego projekt ten:
+\begin{itemize}
+    \item stanowi praktyczne wprowadzenie do systemów IDS, proxy, DNS, monitoringu i logowania,
+    \item uczy integracji narzędzi DevSecOps i konteneryzacji,
+    \item pokazuje jak można zrealizować dobre praktyki bezpieczeństwa w środowisku domowym,
+    \item przygotowuje do wdrożeń w środowiskach produkcyjnych, także w chmurze.
+\end{itemize}
+
+Wdrożone rozwiązanie może być z powodzeniem przeniesione na serwery x86, jak również rozbudowane o kolejne komponenty: EDR (np. Wazuh\cite{wazuh_agent}), sandboxing (np. Falco\cite{falco_docs}), czy automatyczne systemy ostrzegania. Tego typu architektura jest skalowalna, łatwa w utrzymaniu, a przy tym transparentna – co czyni ją atrakcyjną nie tylko w środowiskach domowych, ale również w małych firmach, laboratoriach badawczych i edukacyjnych.
+
+Projekt udowodnił, że współczesne podejście do bezpieczeństwa nie wymaga kosztownej infrastruktury, a wiedza i otwartoźródłowe narzędzia wystarczą do zbudowania solidnej, bezpiecznej i nowoczesnej sieci.
+
 
 %--------------------------------------------
 % Literatura
