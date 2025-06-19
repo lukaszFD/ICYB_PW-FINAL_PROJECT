@@ -172,7 +172,7 @@ Prace rozpoczęto od analizy możliwości sprzętowych oraz wyboru otwartoźród
 
 W kolejnych krokach skonfigurowano poszczególne komponenty systemu: serwery DNS, serwer proxy, system IDS, agregator logów oraz mechanizmy monitorujące. W celu zapewnienia spójności, dla każdej usługi utworzono oddzielne pliki konfiguracyjne\cite{github-homenetguardian} oraz definicje kontenerów (Docker Compose)\cite{lukaszfd_dockercompose2024}. Równolegle prowadzono testy funkcjonalne poszczególnych modułów, weryfikując poprawność działania filtracji, detekcji i logowania zdarzeń.
 
-Metodyka pracy zakładała również zastosowanie dokumentacji oficjalnej (ang. vendor documentation) oraz materiałów ogólnodostępnych. W celu oceny skuteczności wdrożonych mechanizmów wykorzystywano dane z logów systemowych oraz panele monitorujące (dashboardy) stworzone w Grafanie i Graylogu.
+Metodyka pracy zakładała również zastosowanie dokumentacji oficjalnej (ang. vendor documentation) oraz materiałów ogólnodostępnych. W celu oceny skuteczności wdrożonych mechanizmów wykorzystywano dane z logów systemowych oraz panele monitorujące (dashboardy) stworzone w Grafanie, Graylogu i Pihole.
 
 Całość środowiska została osadzona na serwerze z systemem Debian oraz Raspberry Pi, co pozwoliło na weryfikację działania systemu zarówno w warunkach zasobooszczędnych, jak i przy większej wydajności. Projekt zrealizowano w środowisku domowym, co podkreśla jego dostępność i możliwość zastosowania w rzeczywistych warunkach.
 
@@ -250,43 +250,12 @@ Komponenty systemu są połączone za pomocą kilku odseparowanych wirtualnych s
 
 Na rysunku~\ref{fig:architektura} przedstawiono uproszczony schemat logiczny systemu bezpieczeństwa. Ilustruje on przepływ danych od urządzeń końcowych, przez warstwę filtrowania DNS (Pi-hole i Unbound), usługę proxy (Squid), aż po wyjście do Internetu, z jednoczesnym monitoringiem i rejestrowaniem zdarzeń.
 
-\newpage 
 \begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    node distance=1.4cm,
-    every node/.style={draw, rounded corners, align=center, minimum width=3.4cm, minimum height=1.0cm, font=\small},
-    arrow/.style={-Latex, thick}
-]
-
-% Nodes
-\node (devices) {Urządzenia \\ domowe};
-\node[below=of devices] (squid) {Squid \\ Proxy};
-\node[below=of squid] (pihole) {Pi-hole};
-\node[below=of pihole] (unbound) {Unbound};
-\node[below=of unbound] (internet) {Internet};
-
-\node[right=2.8cm of squid] (suricata) {Suricata IDS};
-\node[below=of suricata] (filebeat) {Filebeat};
-\node[below=of filebeat] (graylog) {Graylog};
-
-% Arrows - main flow
-\draw[arrow] (devices) -- (squid);
-\draw[arrow] (squid) -- (pihole);
-\draw[arrow] (pihole) -- (unbound);
-\draw[arrow] (unbound) -- (internet);
-
-% Arrows - monitoring flow
-\draw[arrow] (squid.east) -- ++(0.7,0) |- (suricata.north);
-\draw[arrow] (suricata) -- (filebeat);
-\draw[arrow] (filebeat) -- (graylog);
-
-\end{tikzpicture}
-\caption{Uproszczony schemat logiczny systemu bezpieczeństwa z konteneryzacją}
-\label{fig:architektura}
+    \centering
+    \includegraphics[width=\textwidth]{img/home-network-guardian.drawio.png}
+    \caption{Architektura logiczna systemu.}
+    \label{fig:architektura}
 \end{figure}
-
-\subsection{Segmentacja i separacja usług w sieci lokalnej}
 
 Jednym z kluczowych założeń projektowych było zapewnienie logicznej i funkcjonalnej separacji usług działających w ramach systemu bezpieczeństwa, co przekłada się bezpośrednio na podniesienie poziomu ochrony sieci lokalnej. Zastosowano podejście zgodne z zasadą \textit{security by design}, w którym każda usługa posiada wyraźnie zdefiniowaną funkcję, dostęp do tylko niezbędnych zasobów oraz ograniczoną komunikację z innymi komponentami.
 
@@ -313,13 +282,13 @@ W tabeli~\ref{tab:services-overview} zestawiono wszystkie główne komponenty wd
 \hline
 \textbf{Usługa} & \textbf{Port(y)} & \textbf{Sieć} & \textbf{Funkcja} \\
 \hline
-Pi-hole & 53/tcp, 53/udp, 80 & internal\_network & DNS filtrujący, interfejs webowy \\
+Pi-hole & 53/tcp, 53/udp, 80 & \begin{tabular}{@{}l@{}}internal\_network \\ squid\_network\end{tabular} & DNS filtrujący, interfejs webowy \\
 \hline
-Unbound (dla Pi-hole) & - & internal\_network & DNS rekurencyjny dla Pi-hole \\
+Unbound (dla Pihole) & - & internal\_network & Dedykowany DNS rekurencyjny tylko dla Pihole \\
 \hline
-Squid Proxy (LAN) & 3128 & internal\_network & HTTP/HTTPS proxy dla urządzeń LAN \\
+Squid Proxy (LAN) & 3128 & squid\_network\ & HTTP/HTTPS proxy dla urządzeń LAN \\
 \hline
-Squid Proxy (Mobile) & 3129 & internal\_network & HTTP/HTTPS proxy dla urządzeń mobilnych \\
+Squid Proxy (Mobile) & 3129 & squid\_network\ & HTTP/HTTPS proxy dla urządzeń mobilnych \\
 \hline
 Firefox & 4000, 4001 & firefox\_network & Izolowana przeglądarka z dostępem przez noVNC \\
 \hline
@@ -339,7 +308,7 @@ Grafana & 3000 & host & Wizualizacja metryk i integracja z Prometheus \\
 \hline
 Prometheus & 9090 & host & Zbieranie metryk systemowych i kontenerów \\
 \hline
-Portainer & 9010 & host & Panel do zarządzania kontenerami Docker \\
+Portainer & 9010 & portainer\_network & Panel do zarządzania kontenerami Docker \\
 \hline
 \end{tabularx}
 \end{table}
@@ -350,13 +319,33 @@ Portainer & 9010 & host & Panel do zarządzania kontenerami Docker \\
 
 \subsection{Docker network – konfiguracja izolacji kontenerów}
 
-W celu zapewnienia kontroli przepływu danych oraz realizacji zasady ograniczonego zaufania (\textit{zero trust}), cały system został zorganizowany w oparciu o logicznie wydzielone sieci wirtualne Docker~\ref{fig:docker-networks}, działające na sterowniku typu \texttt{bridge}. Każda sieć odpowiada innej klasie usług i została zdefiniowana z osobną przestrzenią adresową (\texttt{subnet}), co zapewnia przejrzystość oraz granularną kontrolę nad komunikacją między komponentami.
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{img/docker_network.png}
-    \caption{Lista zdefiniowanych sieci Docker w środowisku Portainer. Widoczne są zarówno sieci systemowe (\texttt{bridge}, \texttt{host}), jak i sieci niestandardowe.}
-    \label{fig:docker-networks}
-\end{figure}
+W celu zapewnienia kontroli przepływu danych oraz realizacji zasady ograniczonego zaufania (\textit{zero trust}), cały system został zorganizowany w oparciu o logicznie wydzielone sieci wirtualne Docker~\ref{tab:docker-networks}, działające na sterowniku typu \texttt{bridge}. Każda sieć odpowiada innej klasie usług i została zdefiniowana z osobną przestrzenią adresową (\texttt{subnet}), co zapewnia przejrzystość oraz granularną kontrolę nad komunikacją między komponentami.
+
+\begin{table}[H]
+\centering
+\caption{Konfiguracja sieci Docker — adresacja i parametry}
+\label{tab:docker-networks}
+\begin{tabularx}{\textwidth}{|l|l|l|l|X|}
+\hline
+\textbf{Nazwa sieci} & \textbf{Typ} & \textbf{Subnet (IPv4)} & \textbf{Gateway (IPv4)} & \textbf{Właściciel} \\
+\hline
+bridge & bridge (System) & 172.17.0.0/16 & 172.17.0.1 & public \\
+\hline
+host & host (System) & - & - & public \\
+\hline
+hunter\_default & bridge & 172.18.0.0/16 & 172.18.0.1 & admin \\
+\hline
+firefox\_network & bridge & 172.30.0.0/24 & 172.30.0.1 & admin \\
+\hline
+internal\_network & bridge & 172.20.0.0/24 & 172.20.0.1 & admin \\
+\hline
+portainer\_network & bridge & 172.50.0.0/24 & 172.50.0.1 & admin \\
+\hline
+squid\_network & bridge & 172.40.0.0/24 & 172.40.0.1 & admin \\
+\hline
+\end{tabularx}
+\end{table}
+
 
 Zdefiniowano następujące sieci:
 
@@ -462,7 +451,7 @@ Konfiguracja Squida została dostosowana do potrzeb środowiska domowego, z naci
     \label{fig:squid-acl}
 \end{figure}
 
-Wszystkie logi generowane przez Squida są kierowane do systemu \textbf{Filebeat}, a następnie przesyłane do \textbf{Grayloga}, gdzie podlegają korelacji z innymi zdarzeniami sieciowymi (np. alertami z Suricaty czy zapytaniami DNS). Dzięki temu możliwe jest śledzenie i analiza aktywności użytkowników oraz wykrywanie potencjalnych anomalii, takich jak próby dostępu do nieautoryzowanych serwisów, złośliwy ruch wychodzący czy wykorzystanie tuneli proxy.
+Wszystkie logi generowane przez Squida są kierowane do systemu \textbf{Filebeat}, a następnie przesyłane do \textbf{Grayloga}, gdzie podlegają korelacji z innymi zdarzeniami sieciowymi np. alertami z Suricaty. Dzięki temu możliwe jest śledzenie i analiza aktywności użytkowników oraz wykrywanie potencjalnych anomalii, takich jak próby dostępu do nieautoryzowanych serwisów, złośliwy ruch wychodzący czy wykorzystanie tuneli proxy.
 
 Squid umożliwia również stworzenie podstawowych polityk kontroli dostępu do Internetu, takich jak:
 \begin{itemize}
@@ -479,7 +468,7 @@ Podsumowując, Squid Proxy w tej architekturze pełni kluczową rolę w wymuszan
 
 \textbf{Suricata}\cite{suricata-wiki} to zaawansowany system detekcji zagrożeń (IDS – Intrusion Detection System), który został wdrożony w ramach systemu bezpieczeństwa w celu monitorowania i analizowania ruchu sieciowego w czasie rzeczywistym. Narzędzie to wykorzystuje mechanizmy inspekcji głębokiej (Deep Packet Inspection, DPI), analizy protokołów aplikacyjnych (np. HTTP, TLS, DNS, FTP) oraz wykrywania anomalii, aby identyfikować potencjalnie złośliwe działania w sieci lokalnej\cite{suricata-docs}.
 
-W prezentowanej architekturze Suricata działa w trybie pasywnym jako komponent analizujący ruch przepływający przez interfejsy wirtualne sieci Docker\cite{config-suricata}. Została uruchomiona w osobnym kontenerze z ograniczonymi uprawnieniami, co zapewnia zarówno izolację od reszty systemu, jak i łatwość zarządzania. Kontener Suricaty został przypisany do tej samej sieci wirtualnej co usługi Pi-hole, Squid Proxy i Unbound, dzięki czemu może obserwować cały wewnętrzny ruch DNS i HTTP/S generowany przez urządzenia końcowe w sieci\cite{suricata-docs}.
+W prezentowanej architekturze Suricata\cite{config-suricata} działa w trybie pasywnym jako komponent analizujący ruch przepływający przez interfejsy wirtualne sieci Docker. Została uruchomiona w osobnym kontenerze z ograniczonymi uprawnieniami, co zapewnia zarówno izolację od reszty systemu, jak i łatwość zarządzania. Kontener Suricaty został przypisany do tej samej sieci co host, dzięki czemu może obserwować cały wewnętrzny ruch DNS i HTTP/S generowany przez urządzenia końcowe w sieci\cite{suricata-docs}.
 
 Główne funkcje Suricaty obejmują:
 \begin{itemize}
@@ -492,6 +481,7 @@ Główne funkcje Suricaty obejmują:
 
 Dodatkowo Suricata korzysta z reguł detekcji pochodzących z zestawu \textbf{ET Open Rules}, które obejmują najczęstsze zagrożenia występujące globalnie. Dla zwiększenia efektywności ochrony  dodane zostały własne reguły zawarte w pliku \texttt{custom.rules}\cite{custom-rules-github}. Własne reguły pozwalają na dostosowanie systemu do specyficznych potrzeb lokalnego ruchu, zwiększają precyzję wykrywania zagrożeń oraz minimalizują fałszywe alarmy.
 
+\newpage
 Reguły zawarte w pliku \texttt{custom.rules} obejmują:
 
 \begin{itemize}
@@ -500,7 +490,7 @@ Reguły zawarte w pliku \texttt{custom.rules} obejmują:
 
 \item \textbf{Wykrywanie ataku ICMP Flood}: Detekcja dużej ilości pakietów ICMP typu „Echo Request”, wskazującej na potencjalny atak DDoS.
 
-\item \textbf{Wykrywanie spoofingu ARP (atak MITM)}: Reguła (wyłączona domyślnie) wykrywająca fałszywe pakiety ARP, które mogą być próbą ataku typu Man-in-the-Middle.
+\item \textbf{Wykrywanie spoofingu ARP (atak MITM)}: Reguła wykrywająca fałszywe pakiety ARP, które mogą być próbą ataku typu Man-in-the-Middle.
 
 \item \textbf{Wykrywanie prób brute-force SSH}: Monitorowanie prób wielokrotnych logowań do SSH, co sugeruje ataki typu brute-force na usługę SSH.
 
@@ -517,13 +507,14 @@ Reguły zawarte w pliku \texttt{custom.rules} obejmują:
 
 Każda reguła jest szczegółowo skonfigurowana, co umożliwia precyzyjne wykrywanie zagrożeń i łatwe dostosowywanie systemu do bieżących potrzeb i specyfiki lokalnego ruchu sieciowego. Reguły wykorzystują charakterystyczne wzorce, które pomagają w szybkim identyfikowaniu incydentów bezpieczeństwa i podejmowaniu właściwych działań zapobiegawczych lub naprawczych. 
 
-Z punktu widzenia przepływu danych, Suricata analizuje pakiety pochodzące głównie z kontenera Squid Proxy oraz Pi-hole, umożliwiając wykrywanie m.in. prób połączeń do złośliwych domen, anomalii w żądaniach HTTP/S, czy też podejrzanych odpowiedzi DNS. Wykryte zdarzenia są logowane w formacie JSON i przekazywane do kontenera Filebeat, który odpowiada za przesyłanie ich do systemu logowania \textbf{Graylog}.
+Z punktu widzenia przepływu danych, Suricata analizuje pakiety sieciowe przychodzące do hosta, na którym działa usługa DNS (Pi-hole oraz Unbound). Ponieważ z tego serwera DNS korzystają wszystkie urządzenia w sieci, Suricata umożliwia wykrywanie m.in. prób połączeń do złośliwych domen, anomalii w żądaniach DNS, czy też nietypowego ruchu generowanego przez klientów. Wykryte zdarzenia są logowane w formacie JSON i przekazywane do kontenera \textbf{Filebeat}, który odpowiada za ich przesyłanie do systemu logowania \textbf{Graylog}.
+
 
 Dzięki integracji z Graylogiem możliwe jest:
 \begin{itemize}
     \item budowanie interaktywnych dashboardów przedstawiających statystyki zagrożeń,
     \item szybkie przeszukiwanie logów wg adresów IP, typów ataków, portów docelowych i źródeł,
-    \item korelacja zdarzeń z innymi komponentami systemu (np. Pi-hole, Squid),
+    \item korelacja zdarzeń z innymi komponentami systemu np. Squid,
     \item generowanie alertów w czasie rzeczywistym.
 \end{itemize}
 
@@ -548,8 +539,8 @@ Podstawowe założenia przy konfiguracji firewalla to:
 
 Dodatkowo, część zabezpieczeń została zaimplementowana na poziomie sieci Docker. Dzięki wykorzystaniu dedykowanych sieci wirtualnych (\texttt{Docker bridge networks}) możliwe było:
 \begin{itemize}
-    \item całkowite odseparowanie usług wewnętrznych (np. Firefox, Pi-hole, Unbound, Squid) w sieci \texttt{internal\_network},
-    \item ograniczenie dostępu do Pi-hole i Unbound wyłącznie z kontenera Squid i Firefox,
+    \item całkowite odseparowanie usług wewnętrznych (np. Firefox, Pi-hole, Unbound, Squid) w sieci \texttt{internal\_network} oraz \texttt{squid\_network},
+    \item ograniczenie dostępu do Pi-hole i Unbound wyłącznie z kontenera Squid ,
     \item kontrola przepływu logów z Suricata i Squida do Filebeat (działającego na hoście),
     \item stworzenie zamkniętego środowiska, w którym kontenery komunikują się tylko tam, gdzie jest to konieczne.
 \end{itemize}
@@ -650,12 +641,28 @@ W środowisku domowym lub małym laboratorium cyberbezpieczeństwa Portainer sta
 
 \subsection{Filebeat – przesyłanie logów}
 
-\textbf{Filebeat}\cite{filebeat-docs} to lekki agent typu \textit{log shipper}, który został wdrożony w systemie bezpieczeństwa w celu zbierania, przetwarzania i przesyłania logów generowanych przez różne komponenty infrastruktury. W prezentowanym środowisku Filebeat działa bezpośrednio na hoście systemowym\cite{config-filebeat}, a jego głównym zadaniem jest agregacja danych z takich usług jak \textbf{Suricata IDS}, \textbf{Squid Proxy}, \textbf{Pi-hole} oraz skryptów monitorujących, a następnie przesyłanie ich do centralnego systemu analitycznego \textbf{Graylog}.
+\textbf{Filebeat}\cite{filebeat-docs} to lekki agent typu \textit{log shipper}, który został wdrożony w systemie bezpieczeństwa w celu zbierania, przetwarzania i przesyłania logów generowanych przez różne komponenty infrastruktury. W prezentowanym środowisku Filebeat działa bezpośrednio na hoście systemowym\cite{config-filebeat}, a jego głównym zadaniem jest agregacja danych z takich usług jak \textbf{Suricata IDS}, \textbf{Squid Proxy} oraz skryptów monitorujących, a następnie przesyłanie ich do centralnego systemu analitycznego \textbf{Graylog}.
 
 W odróżnieniu od standardowej konfiguracji GELF/UDP, zastosowano bardziej elastyczny i niezawodny sposób przesyłania danych – poprzez port \textbf{5044} z użyciem protokołu \textbf{Beats}, obsługiwanego w Graylogu przez odpowiednią wtyczkę typu Beats Input.
 
 Agent Filebeat został skonfigurowany w trybie filestream, co pozwala na efektywne i bezpieczne śledzenie plików logów w formacie JSON. Dane z poszczególnych źródeł są etykietowane polem \texttt{log\_type}, co umożliwia ich łatwą identyfikację i rozróżnienie w Graylogu.
 
+Konfiguracja obejmuje trzy źródła danych:
+\begin{itemize}
+    \item \textbf{Suricata} – logi zdarzeń IDS w formacie JSON (eve.json), zawierające informacje o alertach, pakietach i protokołach sieciowych,
+    \item \textbf{Squid Proxy} – logi dostępu HTTP/S z informacjami o źródłach zapytań, odpowiedziach serwera, metodach i czasach odpowiedzi,
+    \item \textbf{Monitorowanie zasobów dysku} – dane systemowe z lokalnego skryptu, zapisywane jako logi JSON.
+\end{itemize}
+
+Filebeat zapewnia:
+\begin{itemize}
+    \item niezawodne przesyłanie logów z kolejkowaniem i retry w przypadku chwilowej niedostępności Grayloga,
+    \item oznaczanie logów dodatkowymi metadanymi (\texttt{log\_type}), co umożliwia ich filtrowanie i grupowanie w Graylogu,
+    \item pełną kompatybilność z architekturą ARM i bardzo niskie zużycie zasobów, co jest szczególnie ważne w środowisku opartym na Raspberry Pi 5,
+    \item bezpieczne i pasywne działanie – Filebeat nie ingeruje w pliki źródłowe ani nie zmienia ich struktury.
+\end{itemize}
+
+\newpage
 \begin{lstlisting}[language=yaml, caption={Przykładowa konfiguracja Filebeat (filebeat.yml)}, label={lst:filebeat-config}]
 filebeat.inputs:
   - type: filestream
@@ -679,15 +686,6 @@ filebeat.inputs:
     fields_under_root: true
 
   - type: filestream
-    id: pihole-logs
-    enabled: true
-    paths:
-      - /var/log/pihole.log
-    fields:
-      log_type: pihole
-    fields_under_root: true
-
-  - type: filestream
     id: disk-usage-logs
     enabled: true
     paths:
@@ -701,22 +699,6 @@ filebeat.inputs:
 output.logstash:
   hosts: ["127.0.0.1:5044"]
 \end{lstlisting}
-
-Konfiguracja obejmuje cztery źródła danych:
-\begin{itemize}
-    \item \textbf{Suricata} – logi zdarzeń IDS w formacie JSON (eve.json), zawierające informacje o alertach, pakietach i protokołach sieciowych,
-    \item \textbf{Squid Proxy} – logi dostępu HTTP/S z informacjami o źródłach zapytań, odpowiedziach serwera, metodach i czasach odpowiedzi,
-    \item \textbf{Pi-hole} – logi DNS informujące o zapytaniach i blokowanych domenach ,
-    \item \textbf{Monitorowanie zasobów dysku} – dane systemowe z lokalnego skryptu, zapisywane jako logi JSON.
-\end{itemize}
-
-Filebeat zapewnia:
-\begin{itemize}
-    \item niezawodne przesyłanie logów z kolejkowaniem i retry w przypadku chwilowej niedostępności Grayloga,
-    \item oznaczanie logów dodatkowymi metadanymi (\texttt{log\_type}), co umożliwia ich filtrowanie i grupowanie w Graylogu,
-    \item pełną kompatybilność z architekturą ARM i bardzo niskie zużycie zasobów, co jest szczególnie ważne w środowisku opartym na Raspberry Pi 5,
-    \item bezpieczne i pasywne działanie – Filebeat nie ingeruje w pliki źródłowe ani nie zmienia ich struktury.
-\end{itemize}
 
 Logi są odbierane przez Graylog w formacie strumieniowanym, a następnie przetwarzane, indeksowane i prezentowane na dedykowanych dashboardach. Zastosowanie Filebeat w opisywanym systemie umożliwia pełną centralizację logowania, analizę zagrożeń, oraz szybką diagnostykę incydentów na podstawie danych z wielu źródeł.
 
@@ -760,9 +742,9 @@ W opisywanej architekturze Graylog nie tylko pełni funkcję centralnego repozyt
 
 \subsection{Elasticsearch i MongoDB – wsparcie dla Grayloga}
 
-W ramach wdrożenia systemu logowania Graylog, dwa komponenty pełnią fundamentalne role pomocnicze: \textbf{Elasticsearch} oraz \textbf{MongoDB}. Choć nie są one bezpośrednio widoczne dla użytkownika końcowego, ich obecność jest niezbędna do prawidłowego działania całej platformy analitycznej.
+W ramach wdrożenia systemu logowania Graylog, dwa komponenty pełnią fundamentalne role pomocnicze: \textbf{Elasticsearch} oraz \textbf{MongoDB}\cite{mongodb}. Choć nie są one bezpośrednio widoczne dla użytkownika końcowego, ich obecność jest niezbędna do prawidłowego działania całej platformy analitycznej.
 
-\textbf{Elasticsearch} to rozproszony silnik wyszukiwania i indeksowania danych, oparty na Apache Lucene. W architekturze Grayloga odpowiada za przechowywanie oraz szybkie przeszukiwanie logów otrzymywanych z różnych źródeł (np. Suricata, Squid). Dzięki strukturze indeksów, Elasticsearch umożliwia natychmiastowy dostęp do milionów wpisów w czasie rzeczywistym, z zastosowaniem zaawansowanych filtrów, pełnotekstowego wyszukiwania oraz analiz statystycznych.
+\textbf{Elasticsearch} to rozproszony silnik wyszukiwania i indeksowania danych, oparty na Apache Lucene\cite{lucene}. W architekturze Grayloga odpowiada za przechowywanie oraz szybkie przeszukiwanie logów otrzymywanych z różnych źródeł. Dzięki strukturze indeksów, Elasticsearch umożliwia natychmiastowy dostęp do milionów wpisów w czasie rzeczywistym, z zastosowaniem zaawansowanych filtrów, pełnotekstowego wyszukiwania oraz analiz statystycznych.
 
 \textbf{Funkcje Elasticsearch w systemie Graylog:}
 \begin{itemize}
@@ -811,32 +793,31 @@ Prometheus zapewnia:
 
 \subsection{Grafana – wizualizacja danych i metryk}
 
-\textbf{Grafana}\cite{grafana-docs} to elastyczne narzędzie do wizualizacji danych telemetrycznych, w tym danych metrycznych z Prometheusa. W systemie bezpieczeństwa prezentowanym w niniejszej pracy Grafana pełni funkcję głównego interfejsu do obserwacji zasobów i usług w czasie rzeczywistym, umożliwiając administratorowi bieżące śledzenie stanu infrastruktury oraz identyfikację anomalii.
+\textbf{Grafana}~\cite{grafana-docs} to elastyczne narzędzie do wizualizacji danych telemetrycznych, w tym metryk zbieranych przez Prometheusa. W systemie bezpieczeństwa prezentowanym w niniejszej pracy Grafana pełni funkcję głównego interfejsu do obserwacji stanu zasobów i usług w czasie rzeczywistym. Umożliwia administratorowi bieżące śledzenie kondycji infrastruktury, identyfikację anomalii oraz szybkie reagowanie na potencjalne problemy.
 
-Grafana została uruchomiona w postaci kontenera Docker, zintegrowanego bezpośrednio z Prometheusem poprzez dedykowany datasource. Dzięki temu możliwe jest prezentowanie danych zbieranych przez Prometheusa w formie:
+Grafana została wdrożona w postaci kontenera Docker, zintegrowanego bezpośrednio z Prometheusem poprzez dedykowany \textit{datasource}. Dzięki temu możliwe jest prezentowanie danych w formie:
 \begin{itemize}
-    \item wykresów czasowych (np. zużycie CPU, RAM, dysku),
-    \item statystyk dostępności kontenerów i usług (uptime, restarty, błędy),
-    \item alertów i warunków progowych (np. kiedy temperatura CPU przekroczy określoną wartość),
-    \item widżetów dotyczących ruchu DNS, HTTP oraz działania Pi-hole czy Suricaty.
+    \item wykresów czasowych (np. wykorzystanie CPU, pamięci RAM, przestrzeni dyskowej),
+    \item statystyk dostępności kontenerów i usług (uptime, liczba restartów, błędy),
+    \item alertów opartych o progi (np. przekroczenie temperatury CPU),
 \end{itemize}
 
-W środowisku stworzono dedykowane dashboardy, m.in.:
+W ramach środowiska opracowano i zaimplementowano dedykowane \textit{dashboardy}, m.in.:
 \begin{itemize}
     \item \textbf{Docker Overview} – wizualizacja stanu i wydajności wszystkich uruchomionych kontenerów,
-    \item \textbf{System Health} – monitorowanie parametrów hosta (Raspberry Pi),
-    \item \textbf{Security Services} – podgląd metryk związanych z Pi-hole, Suricatą i Filebeatem.
+    \item \textbf{System Health} – monitorowanie parametrów hosta (Raspberry Pi)~\cite{grafana-raspberry-dashboard} ,
 \end{itemize}
 
-Grafana oferuje również funkcjonalność:
+Dodatkowo Grafana oferuje:
 \begin{itemize}
-    \item autoryzacji użytkowników (logowanie z hasłem, uprawnienia),
-    \item eksportu danych do zewnętrznych systemów,
-    \item obsługi alertów (np. wysyłanych e-mailem lub przez webhook),
-    \item rozszerzalności poprzez bogaty ekosystem wtyczek i źródeł danych (Elastic, Loki, InfluxDB itd.).
+    \item autoryzację użytkowników (uwierzytelnianie z hasłem i uprawnieniami),
+    \item eksport danych do systemów zewnętrznych,
+    \item obsługę alertów (np. przez e-mail lub webhooki),
+    \item szerokie możliwości rozbudowy dzięki ekosystemowi wtyczek i obsłudze wielu źródeł danych (m.in. Elasticsearch, Loki, InfluxDB).
 \end{itemize}
 
-Wdrożenie Grafany w połączeniu z Prometheusem znacząco podnosi poziom obserwowalności systemu bezpieczeństwa i pozwala na szybkie reagowanie na potencjalne problemy wydajnościowe lub awarie. Interfejs jest intuicyjny i czytelny, co czyni go idealnym narzędziem do codziennego monitoringu infrastruktury.
+Zaimplementowanie Grafany w połączeniu z Prometheusem znacząco zwiększa poziom obserwowalności całego systemu bezpieczeństwa oraz umożliwia szybsze diagnozowanie i eliminowanie potencjalnych zagrożeń lub awarii. Intuicyjny interfejs użytkownika czyni to narzędzie wygodnym w codziennej pracy administratora.
+
 
 \section{ Wyniki wdrożenia i obserwacje}
 \subsection{Efektywność blokowania ruchu DNS i HTTP}
@@ -845,8 +826,8 @@ Jednym z głównych celów wdrożenia systemu było ograniczenie dostępu do nie
 
 \textbf{Filtracja DNS} realizowana przez Pi-hole pozwoliła na natychmiastowe odrzucanie zapytań do znanych domen reklamowych, telemetrycznych, phishingowych i złośliwych. Kluczowym elementem skuteczności Pi-hole’a jest jakość i zakres wykorzystywanych list blokujących. W ramach wdrożenia zaimportowano m.in.:
 \begin{itemize}
-    \item \textbf{Listę CERT Polska}\cite{cert_pl}, zawierającą domeny wykorzystywane do ataków phishingowych – źródło: \url{https://hole.cert.pl/domains/domains.txt},
-    \item \textbf{Listy Suspicious z Firebog}, m.in.:
+    \item \textbf{Listę CERT Polska}\cite{cert_pl}, zawierającą domeny wykorzystywane do ataków phishingowych\cite{certpl-domains},
+    \item \textbf{Listy Suspicious z Firebog\cite{firebog}}, m.in.:
     \begin{itemize}
         \item PolishFiltersTeam KADhosts,
         \item FadeMind Spam Hosts,
@@ -868,7 +849,7 @@ Jednym z głównych celów wdrożenia systemu było ograniczenie dostępu do nie
 
 W efekcie, system Pi-hole blokował średnio od 15\% do 30\% wszystkich zapytań DNS z sieci domowej. Typowe przypadki to domeny typu \texttt{doubleclick.net}, \texttt{googletagmanager.com} oraz inne domeny śledzące wbudowane w strony internetowe.
 
-\textbf{Squid Proxy} uzupełnia tę filtrację o analizę żądań HTTP i HTTPS. Zastosowano reguły \texttt{ACL}, które blokowały dostęp do wybranych kategorii stron (np. media społecznościowe w określonych godzinach) oraz uniemożliwiały pobieranie nieautoryzowanych plików wykonywalnych. Dodatkowo proxy pozwalało analizować nagłówki HTTP oraz prowadzić statystyki ruchu wychodzącego.
+\textbf{Squid Proxy} uzupełnia tę filtrację o analizę żądań HTTP i HTTPS. Zastosowano reguły \texttt{ACL}, które blokowały dostęp do wybranych kategorii stron (np. media społecznościowe) oraz uniemożliwiały pobieranie nieautoryzowanych plików wykonywalnych. Dodatkowo proxy pozwalało analizować nagłówki HTTP oraz prowadzić statystyki ruchu wychodzącego.
 
 \textbf{Suricata IDS} służyła do pasywnej detekcji podejrzanych działań sieciowych, takich jak:
 \begin{itemize}
@@ -878,7 +859,7 @@ W efekcie, system Pi-hole blokował średnio od 15\% do 30\% wszystkich zapytań
     \item próby skanowania portów lub omijania filtrów.
 \end{itemize}
 
-\textbf{Efekty wdrożenia:}
+\paragraph{Efekty wdrożenia:}
 \begin{itemize}
     \item znaczne ograniczenie widocznych reklam i trackerów na stronach,
     \item skrócenie czasu ładowania wielu witryn internetowych,
@@ -888,7 +869,7 @@ W efekcie, system Pi-hole blokował średnio od 15\% do 30\% wszystkich zapytań
 
 Wszystkie działania blokujące są raportowane w systemie logowania Graylog, co umożliwia ich dalszą analizę, korelację z innymi zdarzeniami oraz wizualizację w czasie rzeczywistym w Grafanie. Efektywność rozwiązania potwierdzają zarówno dane statystyczne, jak i testy ręczne – użytkownik końcowy otrzymuje środowisko bardziej prywatne, szybsze i bezpieczne.
 
-\newpage
+
 \subsection{Wykryte zdarzenia i incydenty w Graylog}
 
 System \textbf{Graylog} odegrał kluczową rolę w wykrywaniu i analizie incydentów bezpieczeństwa w środowisku kontenerowym. Dzięki integracji z systemem detekcji \textbf{Suricata} oraz serwerem \textbf{Squid Proxy}, możliwe było centralne zbieranie i korelowanie logów z różnych warstw komunikacji sieciowej.
@@ -905,7 +886,7 @@ Dzięki odpowiednio skonfigurowanym filtrom i dashboardom możliwe było szybkie
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{img/graylog_alerts.png}
-    \caption{Panel \textit{Suricata Traffic Analysis} w Graylog prezentujący statystyki zdarzeń wykrywanych przez system IDS Suricata. Po lewej stronie pokazano zestawienie typów zdarzeń (\texttt{event\_type}) z ich liczebnością i udziałem procentowym – dominują protokoły TLS  i HTTP. W centrum widoczny jest wykres kołowy, a poniżej szczegóły przykładowego alertu o wykryciu skanowania portów UDP z podpisem „Possible UDP scan detected”. Widoczna jest także oryginalna wiadomość JSON z logu oraz jej rozparsowane metadane.}
+    \caption{Panel \textit{Graylog - Suricata dashbord}}
     \label{fig:graylog-suricata-dashboard}
 \end{figure}
 
@@ -1103,54 +1084,62 @@ Pomimo tej rozbudowanej architektury, Raspberry Pi 5 utrzymywał obciążenie CP
 
 Na uwagę zasługuje również \textbf{transparentność działania systemu z perspektywy użytkownika końcowego}. Użytkownicy domowej sieci nie odczuwali żadnych opóźnień, spowolnień czy problemów z dostępem do Internetu. Wręcz przeciwnie – dzięki eliminacji zewnętrznych reklam, trackerów i zasobów telemetrycznych, ładowanie stron internetowych uległo przyspieszeniu, co przełożyło się na lepszy komfort korzystania z sieci.
 
-Całość rozwiązania wpisuje się w filozofię DevSecOps oraz Zero Trust – zakładającą aktywny monitoring, minimalizację zaufania i prewencję poprzez analizę oraz filtrację ruchu na wielu poziomach (DNS, proxy, IDS, logi).
+Całość rozwiązania wpisuje się w filozofię DevSecOps\cite{microsoft-devsecops} oraz Zero Trust\cite{microsoft-zero-trust} – zakładającą aktywny monitoring, minimalizację zaufania i prewencję poprzez analizę oraz filtrację ruchu na wielu poziomach (DNS, proxy, IDS, logi).
 
 \subsection{Możliwości rozbudowy systemu}
 
 System został zaprojektowany modułowo i kontenerowo, co daje szerokie możliwości dalszej rozbudowy i adaptacji do rosnących potrzeb użytkownika. Wśród najbardziej obiecujących kierunków rozwoju można wskazać:
 \begin{itemize}
-    \item \textbf{Integrację z systemami klasy SIEM} takimi jak Wazuh\cite{wazuh_docs} – celem analizy korelacyjnej na większą skalę,
-    \item \textbf{Wprowadzenie mechanizmów EDR i sandboxingu}, np. z wykorzystaniem otwartoźródłowych narzędzi takich jak:
-\begin{itemize}
-  \item \textbf{Wazuh} – jako przykład lekkiego rozwiązania klasy EDR/HIDS, kompatybilnego z architekturą ARM64 i pozwalającego na zbieranie logów, detekcję zagrożeń oraz analizę integralności plików\cite{wazuh_agent}.
-  \item \textbf{Falco} – system do monitorowania zdarzeń w czasie rzeczywistym (sandboxing na poziomie kernela), oparty o eBPF, wykrywający anomalie w kontenerach i hostach linuksowych\cite{falco_docs}.
-\end{itemize},
-    \item \textbf{Zarządzanie konfiguracją i deploymentem} za pomocą Ansible, Terraform lub Portainer Stacks,
-    \item \textbf{Rozszerzenie filtracji treści dla dzieci} – integracja z OpenDNS lub SafeSearch API oraz rozbudowany harmonogram kontroli dostępu,
-    \item \textbf{Automatyczne backupy} logów i konfiguracji z wykorzystaniem zewnętrznego NAS
+    \item \textbf{Integrację z systemami klasy SIEM}, takimi jak \textbf{Wazuh}~\cite{wazuh_docs}, w celu realizacji analizy korelacyjnej na większą skalę,
+    \item \textbf{Wprowadzenie mechanizmów monitorowania hostów i bezpieczeństwa runtime}, z wykorzystaniem otwartoźródłowych narzędzi takich jak:
+    \begin{itemize}
+        \item \textbf{Wazuh} – jako lekkie rozwiązanie klasy HIDS (Host-based Intrusion Detection System), pozwalające na zbieranie logów, detekcję zagrożeń oraz analizę integralności plików~\cite{wazuh_agent}
+    \end{itemize}
+    \item \textbf{Zarządzanie konfiguracją i deploymentem}, z wykorzystaniem narzędzi takich jak Ansible, Terraform lub Portainer Stacks,
+    \item \textbf{Rozszerzenie filtracji treści dla dzieci} – poprzez integrację z OpenDNS lub SafeSearch API oraz rozbudowany harmonogram kontroli dostępu,
+    \item \textbf{Automatyczne backupy} logów i konfiguracji, realizowane z wykorzystaniem zewnętrznego serwera NAS.
 \end{itemize}
 
 Dodatkowo, możliwe jest wdrożenie systemu honeypotów\cite{honeypot_wiki} w celu rejestrowania prób ataku z zewnątrz oraz integracja z repozytorium threat intelligence (np. AbuseIPDB, MISP).
 
 \subsection{Wnioski końcowe}
 
-Zrealizowany projekt pokazał, że możliwe jest zbudowanie nowoczesnego, bezpiecznego i w pełni monitorowanego środowiska sieciowego z wykorzystaniem otwartoźródłowych rozwiązań oraz sprzętu o niskim koszcie, jakim jest Raspberry Pi. Pomimo ograniczeń architektury ARM64, udało się uruchomić szereg zaawansowanych komponentów typowych dla infrastruktury klasy enterprise.
+Z perspektywy zarówno użytkownika, jak i osoby zajmującej się na co dzień cyberbezpieczeństwem i programowaniem, przeprowadzony projekt pokazał w praktyce, że możliwe jest stworzenie nowoczesnego, bezpiecznego i w pełni monitorowanego środowiska sieciowego w oparciu o rozwiązania open-source, bez konieczności inwestowania w drogi sprzęt klasy enterprise. Nawet na platformie tak niewielkiej jak Raspberry Pi (ARM64) udało się z powodzeniem uruchomić cały zestaw komponentów typowych dla infrastruktury stosowanej w firmach.
 
-Konteneryzacja przy pomocy Dockera odegrała kluczową rolę w realizacji tego przedsięwzięcia. Pozwoliła na:
+Kluczową rolę w tym projekcie odegrała konteneryzacja oparta o Dockera. To właśnie dzięki niej możliwe było:
 \begin{itemize}
-    \item logiczną separację usług w ramach izolowanych sieci i przestrzeni nazw,
-    \item uproszczone zarządzanie cyklem życia aplikacji (budowanie, wdrażanie, aktualizacje),
-    \item łatwe odtwarzanie środowiska dzięki zapisanym konfiguracjom \texttt{docker-compose},
-    \item zwiększenie bezpieczeństwa przez ograniczenie wzajemnego wpływu komponentów oraz lepsze zarządzanie portami i dostępem.
+    \item logiczne odseparowanie usług w ramach izolowanych sieci,
+    \item wygodne i powtarzalne zarządzanie cyklem życia aplikacji (budowanie, wdrażanie, aktualizacje),
+    \item szybkie odtworzenie kompletnego środowiska dzięki wykorzystaniu plików \texttt{docker-compose},
+    \item podniesienie poziomu bezpieczeństwa poprzez ograniczenie ekspozycji poszczególnych komponentów i lepsze zarządzanie ich komunikacją.
 \end{itemize}
 
-Zastosowanie Pi-hole oraz Unbound umożliwiło wdrożenie lokalnego, szyfrowanego DNS bez śledzenia zewnętrznego, a jednocześnie pozwoliło na pełną kontrolę nad zapytaniami sieciowymi. Dzięki Squid Proxy możliwe było wprowadzenie dodatkowego poziomu filtracji i nadzoru nad ruchem HTTP/S, szczególnie dla urządzeń należących do dzieci.
+Fundamentem bezpieczeństwa warstwy DNS stały się Pi-hole oraz Unbound. Dzięki temu udało się nie tylko wprowadzić lokalny, szyfrowany i nieszpiegowany DNS, ale również pełną kontrolę nad ruchem sieciowym wychodzącym z sieci domowej. Uzupełnienie tej warstwy o Squid Proxy umożliwiło wdrożenie dodatkowego poziomu filtracji treści HTTP/S — co było szczególnie istotne dla ochrony najmłodszych użytkowników sieci w moim domu.
 
-Integracja Suricaty, Filebeat i Grayloga pozwoliła na wprowadzenie detekcji zagrożeń oraz centralnego logowania i przeszukiwania zdarzeń w czasie rzeczywistym. Z kolei Prometheus i Grafana umożliwiły ciągły monitoring kondycji systemu, zapewniając wizualizację kluczowych metryk.
+Na poziomie detekcji i logowania dużą wartość przyniosła integracja Suricaty (IDS), Filebeat (agent logów) oraz Grayloga (log management). To właśnie dzięki tym komponentom udało się wdrożyć mechanizmy wczesnego ostrzegania i analizy anomalii sieciowych w czasie rzeczywistym. Uzupełnieniem stały się Prometheus i Grafana, które zapewniły wizualizację metryk systemowych oraz stanu kontenerów i usług — pozwalając na bieżąco monitorować kondycję całego środowiska.
 
-Dzięki Portainerowi zarządzanie kontenerami stało się intuicyjne i dostępne z poziomu interfejsu graficznego. Z kolei instalacja lokalnego firewalla i przemyślana architektura sieci Dockera pozwoliły ograniczyć ekspozycję usług na zewnątrz.
+Warto również podkreślić, że dzięki zastosowaniu Portainera, zarządzanie kontenerami stało się nie tylko wygodne, ale również bardziej dostępne — z poziomu intuicyjnego interfejsu webowego. Z kolei wdrożenie firewall’a i świadomie zaprojektowana architektura sieci Dockera znacząco ograniczyły powierzchnię ataku, zmniejszając ryzyko nieautoryzowanego dostępu do usług.
 
-Z punktu widzenia edukacyjnego projekt ten:
+Z mojego punktu widzenia, jako osoby łączącej wiedzę z zakresu programowania i bezpieczeństwa, ten projekt był również wartościowym doświadczeniem edukacyjnym. Umożliwił praktyczne zastosowanie:
 \begin{itemize}
-    \item stanowi praktyczne wprowadzenie do systemów IDS, proxy, DNS, monitoringu i logowania,
-    \item uczy integracji narzędzi DevSecOps i konteneryzacji,
-    \item pokazuje jak można zrealizować dobre praktyki bezpieczeństwa w środowisku domowym,
-    \item przygotowuje do wdrożeń w środowiskach produkcyjnych, także w chmurze.
+    \item systemów IDS, proxy, DNS, monitoringu i centralnego logowania,
+    \item narzędzi i procesów DevSecOps w środowisku kontenerowym,
+    \item dobrych praktyk w projektowaniu bezpiecznej i modularnej architektury IT,
+    \item podejść, które z powodzeniem można przenieść do środowisk produkcyjnych (również w chmurze).
 \end{itemize}
 
-Wdrożone rozwiązanie może być z powodzeniem przeniesione na serwery x86, jak również rozbudowane o kolejne komponenty: EDR (np. Wazuh\cite{wazuh_agent}), sandboxing (np. Falco\cite{falco_docs}), czy automatyczne systemy ostrzegania. Tego typu architektura jest skalowalna, łatwa w utrzymaniu, a przy tym transparentna – co czyni ją atrakcyjną nie tylko w środowiskach domowych, ale również w małych firmach, laboratoriach badawczych i edukacyjnych.
+Warto zaznaczyć, że całość rozwiązania jest skalowalna — bez problemu może zostać przeniesiona na platformy serwerowe x86 (np. Proxmox, bare metal), a także rozszerzona o kolejne komponenty — takie jak:
+\begin{itemize}
+    \item systemy klasy EDR/HIDS (np. \textbf{Wazuh}~\cite{wazuh_agent}),
+    \item runtime security i wykrywanie anomalii na poziomie kernela (np. \textbf{Falco}~\cite{falco_docs}),
+    \item integracja z repozytoriami threat intelligence (np. MISP),
+    \item systemy automatycznego powiadamiania np. email.
+\end{itemize}
 
-Projekt udowodnił, że współczesne podejście do bezpieczeństwa nie wymaga kosztownej infrastruktury, a wiedza i otwartoźródłowe narzędzia wystarczą do zbudowania solidnej, bezpiecznej i nowoczesnej sieci.
+Podsumowując — przeprowadzony projekt udowodnił, że wdrożenie nowoczesnej architektury bezpieczeństwa w środowisku domowym nie wymaga kosztownej infrastruktury, ani dedykowanego sprzętu. Wystarczy połączenie wiedzy, dobrych praktyk oraz narzędzi open-source, aby stworzyć solidną, bezpieczną i transparentną sieć — którą można rozwijać i adaptować do własnych potrzeb. Co więcej — tego typu podejście może być z powodzeniem stosowane nie tylko w środowiskach domowych, ale również w małych firmach, pracowniach badawczych, laboratoriach czy zespołach DevSecOps.
+
+Dla mnie, jako inżyniera bezpieczeństwa i programisty, była to również bardzo wartościowa lekcja integracji różnych narzędzi i technologii w spójny, dobrze działający ekosystem.
+
 
 
 %--------------------------------------------
