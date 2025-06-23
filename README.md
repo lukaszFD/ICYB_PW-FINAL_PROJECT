@@ -1,5 +1,7 @@
 # Home Network Guardian – Final Project
 
+👉 **Live project documentation available at:** [https://lukaszfd.github.io/ICYB_PW-FINAL_PROJECT/#](https://lukaszfd.github.io/ICYB_PW-FINAL_PROJECT/#)
+
 ## Abstract (English)
 
 This repository contains the main text (in `.tex` format) of my postgraduate thesis, "Home Network Guardian: Building a Secure Home Network Environment Based on Open Source Solutions", prepared for the postgraduate studies in Cybersecurity Engineering at Warsaw University of Technology.
